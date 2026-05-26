@@ -750,23 +750,133 @@ export default function FaresPlatform() {
 
             {compareProducts.length>0 && (
               <>
+                {/* Metric selector — drives all compare views */}
+                <div style={{...S.card, padding:"14px 20px", marginBottom:16}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+                    <span style={{fontSize:12,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.05em"}}>
+                      Compare metric:
+                    </span>
+                    {[
+                      ["fare","Local fare","Show fares in local currency"],
+                      ["ppp","USD (PPP)","Purchasing power parity — comparable across currencies"],
+                      ["min_wage","Min wage (mins)","Minutes of minimum wage work to afford the fare"],
+                      ["avg_wage","Avg wage (mins)","Minutes of average wage work to afford the fare"],
+                    ].map(([k,l,desc])=>(
+                      <button key={k}
+                        title={desc}
+                        onClick={()=>setTrendMetric(k)}
+                        style={{
+                          padding:"8px 16px", borderRadius:6, fontSize:13, fontWeight:600,
+                          cursor:"pointer", border:"2px solid",
+                          borderColor: trendMetric===k ? "#2563eb" : "#e2e8f0",
+                          background: trendMetric===k ? "#2563eb" : "#fff",
+                          color: trendMetric===k ? "#fff" : "#64748b",
+                          transition:"all 0.1s",
+                        }}>{l}</button>
+                    ))}
+                    <span style={{fontSize:11,color:"#94a3b8",marginLeft:4}}>
+                      {trendMetric==="fare" && "Local currency — not directly comparable across countries"}
+                      {trendMetric==="ppp" && "PPP-adjusted USD — comparable across all cities"}
+                      {trendMetric==="min_wage" && "How many minutes of minimum wage work buys this fare"}
+                      {trendMetric==="avg_wage" && "How many minutes of average wage work buys this fare"}
+                    </span>
+                  </div>
+                </div>
+
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
                   <div style={S.tabWrap}>
-                    {[["table","Fare table"],["econ","Affordability"],["trends","Price trends"]].map(([t,l])=>(
+                    {[["table","Year-by-year table"],["trends","Trend chart"],["econ","Latest affordability"]].map(([t,l])=>(
                       <button key={t} style={S.tab(compareTab===t)} onClick={()=>setCompareTab(t)}>{l}</button>
                     ))}
                   </div>
                   <button style={S.btnExport} onClick={()=>exportCSV(compareProducts)}>⬇ Export CSV</button>
                 </div>
-                {compareTab==="table" && <ProductTable prods={compareProducts} showCountry={true}/>}
-                {compareTab==="econ" && <AffordabilityTable prods={compareProducts}/>}
+
+                {/* Year-by-year table — shows selected metric across all years */}
+                {compareTab==="table" && (() => {
+                  const metricKey = { fare:"fare", ppp:"ppp", min_wage:"min_wage_mins", avg_wage:"avg_wage_mins" }[trendMetric];
+                  const metricFmt = (v) => {
+                    if (v==null) return null;
+                    if (trendMetric==="fare") return v<1000 ? v.toFixed(2) : v.toLocaleString();
+                    if (trendMetric==="ppp") return v.toFixed(4);
+                    return v.toFixed(1);
+                  };
+                  const activeYears = YEARS.filter(y => compareProducts.some(p => p.observations[y]?.[metricKey] != null));
+                  // Colour code values within each year column
+                  const yearVals = {};
+                  activeYears.forEach(y => {
+                    yearVals[y] = compareProducts.map(p=>p.observations[y]?.[metricKey]).filter(v=>v!=null);
+                  });
+                  return (
+                    <div style={{...S.card, padding:0, overflow:"hidden"}}>
+                      <div style={{padding:"12px 16px",borderBottom:"1px solid #f1f5f9",fontSize:12,color:"#64748b"}}>
+                        Showing <strong>{({fare:"local fare",ppp:"USD (PPP)",min_wage:"minimum wage minutes",avg_wage:"average wage minutes"})[trendMetric]}</strong> by year.
+                        {trendMetric!=="fare" && " Colour: green = most affordable, red = least affordable within each year."}
+                      </div>
+                      <div style={{overflowX:"auto"}}>
+                        <table style={S.table}>
+                          <thead><tr>
+                            <th style={S.th}>City</th>
+                            <th style={S.th}>System</th>
+                            <th style={S.th}>Category</th>
+                            <th style={S.th}>Ticket type</th>
+                            <th style={S.th}>Passenger</th>
+                            <th style={S.th}>Zone</th>
+                            {activeYears.map(y=><th key={y} style={{...S.th,textAlign:"right"}}>{YEAR_LABELS[y]}</th>)}
+                            <th style={S.th}>Trend</th>
+                          </tr></thead>
+                          <tbody>
+                            {compareProducts.map(p => {
+                              const sparkPoints = {};
+                              activeYears.forEach(y => {
+                                const v = p.observations[y]?.[metricKey];
+                                if (v!=null) sparkPoints[y]=v;
+                              });
+                              return (
+                                <tr key={p.product_id}
+                                  style={{opacity:p.product_discontinued?0.65:1}}
+                                  onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+                                  onMouseLeave={e=>e.currentTarget.style.background=""}>
+                                  <td style={{...S.td,fontWeight:600}}>{p.city}</td>
+                                  <td style={S.tdMuted}>{p.transit_system}</td>
+                                  <td style={S.td}><CategoryBadge cat={p.ticket_category}/></td>
+                                  <td style={S.td}>
+                                    {p.unified_ticket_type}
+                                    {p.product_discontinued && <DiscontinuedBadge/>}
+                                  </td>
+                                  <td style={S.tdMuted}>{p.unified_passenger_type}</td>
+                                  <td style={S.tdMuted}>{p.zone||"—"}</td>
+                                  {activeYears.map(y => {
+                                    const v = p.observations[y]?.[metricKey];
+                                    const colour = trendMetric!=="fare" ? S.econColour(v, yearVals[y]) : "#374151";
+                                    return (
+                                      <td key={y} style={{...S.tdNum, color:colour, fontWeight: v!=null&&trendMetric!=="fare"?600:400}}>
+                                        {v!=null ? metricFmt(v) : <span style={{color:"#e2e8f0"}}>—</span>}
+                                      </td>
+                                    );
+                                  })}
+                                  <td style={{...S.td,paddingRight:12}}><Sparkline points={sparkPoints}/></td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      {compareProducts.length>=500&&(
+                        <div style={{padding:"9px 14px",background:"#fffbeb",borderTop:"1px solid #fde68a",fontSize:12,color:"#92400e"}}>
+                          Showing first 500 results — refine your filters for a more specific view.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Trend chart */}
                 {compareTab==="trends" && (
                   <div style={S.card}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
-                      <span style={{fontSize:12,color:"#64748b",fontWeight:600}}>Metric:</span>
-                      {[["fare","Local fare"],["ppp","USD (PPP)"],["min_wage","Min wage (mins)"],["avg_wage","Avg wage (mins)"]].map(([k,l])=>(
-                        <button key={k} style={S.metricBtn(trendMetric===k)} onClick={()=>setTrendMetric(k)}>{l}</button>
-                      ))}
+                    <div style={{fontSize:12,color:"#64748b",marginBottom:16}}>
+                      Showing <strong>{({fare:"local fare",ppp:"USD (PPP)",min_wage:"minimum wage minutes",avg_wage:"average wage minutes"})[trendMetric]}</strong> over time.
+                      Use the metric selector above to switch. Showing up to 8 products.
                     </div>
                     <TrendChart
                       products={compareProducts.slice(0,8).map(p=>({
@@ -775,6 +885,9 @@ export default function FaresPlatform() {
                       metric={trendMetric}/>
                   </div>
                 )}
+
+                {/* Latest affordability snapshot */}
+                {compareTab==="econ" && <AffordabilityTable prods={compareProducts}/>}
               </>
             )}
 
