@@ -340,18 +340,38 @@ export default function FaresPlatform() {
   const [compareProducts, setCompareProducts] = useState([]);
   const [compareLoading, setCompareLoading]   = useState(false);
 
-  // Load filter options from fares_full
+  // Load filter options from base tables — avoids row limits on fares_full
   useEffect(() => {
-    apiFetch("fares_full", {
-      select:"country,city,unified_passenger_type,ticket_category,peak_period,financial_year",
-      limit:50000
-    }).then(data => {
-      setCountries([...new Set(data.map(d=>d.country))].filter(Boolean).sort());
-      setPassengerTypes([...new Set(data.map(d=>d.unified_passenger_type))].filter(Boolean).sort());
-      setTicketCategories([...new Set(data.map(d=>d.ticket_category))].filter(Boolean).sort());
-      setPeakOptions([...new Set(data.map(d=>d.peak_period))].filter(Boolean).sort());
+    apiFetch("countries", { select:"id,name", order:"name.asc", limit:200 })
+      .then(data => setCountries(data.map(d=>d.name).filter(Boolean)))
+      .catch(()=>{});
+
+    apiFetch("products", { select:"unified_passenger_type", limit:10000 })
+      .then(data => setPassengerTypes([...new Set(data.map(d=>d.unified_passenger_type))].filter(Boolean).sort()))
+      .catch(()=>{});
+
+    apiFetch("products", { select:"ticket_category", limit:10000 })
+      .then(data => setTicketCategories([...new Set(data.map(d=>d.ticket_category))].filter(Boolean).sort()))
+      .catch(()=>{});
+
+    apiFetch("products", { select:"peak_period", limit:10000 })
+      .then(data => setPeakOptions([...new Set(data.map(d=>d.peak_period))].filter(Boolean).sort()))
+      .catch(()=>{});
+
+    Promise.all([
+      apiFetch("countries", { select:"id,name", limit:200 }),
+      apiFetch("cities", { select:"country_id,name", limit:500 }),
+    ]).then(([countryData, cityData]) => {
+      const countryById = {};
+      countryData.forEach(c => { countryById[c.id] = c.name; });
       const cityMap = {};
-      data.forEach(d => { if(d.country&&d.city) { const k=`${d.country}||${d.city}`; cityMap[k]={key:k,country:d.country,city:d.city}; }});
+      cityData.forEach(c => {
+        const countryName = countryById[c.country_id];
+        if (countryName && c.name) {
+          const k = `${countryName}||${c.name}`;
+          cityMap[k] = { key:k, country:countryName, city:c.name };
+        }
+      });
       setAllCities(Object.values(cityMap).sort((a,b)=>a.country.localeCompare(b.country)||a.city.localeCompare(b.city)));
     }).catch(()=>{});
   }, []);
