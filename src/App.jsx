@@ -272,7 +272,7 @@ function buildParams(f, extra={}) {
   if (f.peak_period?.length) p["peak_period"] = inClause(f.peak_period);
   if (f.financial_year?.length) p["financial_year"] = inClause(f.financial_year);
   // Payment media uses contains search since values are comma-separated combinations
-  if (f.payment_media?.length === 1) p["payment_media"] = `ilike.*${f.payment_media[0]}*`;
+  if (f.payment_media?.length === 1) p["payment_media"] = 'ilike.*' + f.payment_media[0] + '*';
   if (f.is_active_only) p["is_active"] = "eq.true";
   if (f.report_fare_only) p["report_fare"] = "eq.true";
   if (f.exclude_discontinued) p["product_discontinued"] = "eq.false";
@@ -314,10 +314,11 @@ export default function FaresPlatform() {
   const [passengerTypes, setPassengerTypes] = useState([]);
   const [ticketCategories, setTicketCategories] = useState([]);
   const [peakOptions, setPeakOptions] = useState([]);
+  const [paymentMediaOptions, setPaymentMediaOptions] = useState([]);
 
   const [filters, setFilters] = useState({
     country:[], city:[], unified_passenger_type:[], ticket_category:[],
-    peak_period:[], financial_year:[], is_active_only:false,
+    peak_period:[], payment_media:[], financial_year:[], is_active_only:false,
     report_fare_only:false, exclude_discontinued:false,
   });
 
@@ -658,7 +659,7 @@ export default function FaresPlatform() {
                 <div style={{flex:1}}/>
                 <button style={S.btnSecondary} onClick={()=>{
                   setFilters({country:[],city:[],unified_passenger_type:[],ticket_category:[],
-                    peak_period:[],financial_year:[],is_active_only:false,report_fare_only:false,exclude_discontinued:false});
+                    peak_period:[],payment_media:[],financial_year:[],is_active_only:false,report_fare_only:false,exclude_discontinued:false});
                   setRawResults([]); setProducts([]); setSearched(false);
                 }}>Clear all</button>
                 <button style={S.btnPrimary} onClick={search} disabled={loading}>
