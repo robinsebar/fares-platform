@@ -271,6 +271,8 @@ function buildParams(f, extra={}) {
   if (f.ticket_category?.length) p["ticket_category"] = inClause(f.ticket_category);
   if (f.peak_period?.length) p["peak_period"] = inClause(f.peak_period);
   if (f.financial_year?.length) p["financial_year"] = inClause(f.financial_year);
+  // Payment media uses contains search since values are comma-separated combinations
+  if (f.payment_media?.length === 1) p["payment_media"] = `ilike.*${f.payment_media[0]}*`;
   if (f.is_active_only) p["is_active"] = "eq.true";
   if (f.report_fare_only) p["report_fare"] = "eq.true";
   if (f.exclude_discontinued) p["product_discontinued"] = "eq.false";
@@ -340,27 +342,48 @@ export default function FaresPlatform() {
   const [compareProducts, setCompareProducts] = useState([]);
   const [compareLoading, setCompareLoading]   = useState(false);
 
-  // Load filter options from base tables — avoids row limits on fares_full
+  // Load filter options — fetch all pages to avoid row limits
   useEffect(() => {
-    apiFetch("countries", { select:"id,name", order:"name.asc", limit:200 })
+    apiFetch("countries", { select:"id,name", order:"name.asc", limit:500 })
       .then(data => setCountries(data.map(d=>d.name).filter(Boolean)))
       .catch(()=>{});
 
-    apiFetch("products", { select:"unified_passenger_type", limit:10000 })
-      .then(data => setPassengerTypes([...new Set(data.map(d=>d.unified_passenger_type))].filter(Boolean).sort()))
-      .catch(()=>{});
-
-    apiFetch("products", { select:"ticket_category", limit:10000 })
-      .then(data => setTicketCategories([...new Set(data.map(d=>d.ticket_category))].filter(Boolean).sort()))
-      .catch(()=>{});
-
-    apiFetch("products", { select:"peak_period", limit:10000 })
-      .then(data => setPeakOptions([...new Set(data.map(d=>d.peak_period))].filter(Boolean).sort()))
-      .catch(()=>{});
+    // Fetch all products in pages to get all distinct values
+    const fetchAllProducts = async () => {
+      let allRows = [];
+      let offset = 0;
+      const PAGE = 1000;
+      while (true) {
+        const page = await apiFetch("products", {
+          select:"unified_passenger_type,ticket_category,peak_period,payment_media",
+          limit:PAGE, offset
+        });
+        allRows = allRows.concat(page);
+        if (page.length < PAGE) break;
+        offset += PAGE;
+      }
+      setPassengerTypes([...new Set(allRows.map(d=>d.unified_passenger_type))].filter(Boolean).sort());
+      setTicketCategories([...new Set(allRows.map(d=>d.ticket_category))].filter(Boolean).sort());
+      setPeakOptions([...new Set(allRows.map(d=>d.peak_period))].filter(Boolean).sort());
+      // Extract individual payment media types from comma-separated values
+      const pmSet = new Set();
+      allRows.forEach(d => {
+        if (d.payment_media) {
+          d.payment_media.split(",").forEach(p => {
+            const t = p.trim();
+            if (t && !['na','n/a','n.a.','NA','Monday to Saturday','Sunday and National Holidays','Transfer','Pass','Basic tariff'].includes(t)) {
+              pmSet.add(t);
+            }
+          });
+        }
+      });
+      setPaymentMediaOptions([...pmSet].sort());
+    };
+    fetchAllProducts().catch(()=>{});
 
     Promise.all([
-      apiFetch("countries", { select:"id,name", limit:200 }),
-      apiFetch("cities", { select:"country_id,name", limit:500 }),
+      apiFetch("countries", { select:"id,name", limit:500 }),
+      apiFetch("cities", { select:"country_id,name", limit:1000 }),
     ]).then(([countryData, cityData]) => {
       const countryById = {};
       countryData.forEach(c => { countryById[c.id] = c.name; });
@@ -451,6 +474,7 @@ export default function FaresPlatform() {
                 <th style={S.th}>Passenger</th>
                 <th style={S.th}>Zone</th>
                 <th style={S.th}>Peak</th>
+                <th style={S.th}>Payment media</th>
                 {activeYears.map(y => <th key={y} style={{...S.th,textAlign:"right"}}>{YEAR_LABELS[y]}</th>)}
                 <th style={S.th}>Trend</th>
               </tr>
@@ -478,6 +502,7 @@ export default function FaresPlatform() {
                     <td style={S.tdMuted}>{p.unified_passenger_type}</td>
                     <td style={S.tdMuted}>{p.zone||"—"}</td>
                     <td style={S.tdMuted}>{p.peak_period||"—"}</td>
+                    <td style={S.tdMuted}>{p.payment_media||"—"}</td>
                     {activeYears.map(y => {
                       const obs = p.observations[y];
                       return (
@@ -614,6 +639,8 @@ export default function FaresPlatform() {
                   selected={filters.ticket_category} onChange={v=>setF("ticket_category",v)}/>
                 <MultiSelect label="Peak / Off-peak" options={peakOptions}
                   selected={filters.peak_period} onChange={v=>setF("peak_period",v)}/>
+                <MultiSelect label="Payment media" options={paymentMediaOptions}
+                  selected={filters.payment_media} onChange={v=>setF("payment_media",v)}/>
                 <MultiSelect label="Financial year" options={YEARS.map(y=>y)}
                   selected={filters.financial_year} onChange={v=>setF("financial_year",v)}/>
               </div>
