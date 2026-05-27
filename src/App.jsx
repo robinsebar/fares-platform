@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://dlvjrgubjpslhvwdvtfr.supabase.co/rest/v1";
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
@@ -8,7 +8,44 @@ const YEAR_LABELS = {
   "18-19":"2018–19","19-20":"2019–20","20-21":"2020–21","21-22":"2021–22",
   "22-23":"2022–23","23-24":"2023–24","24-25":"2024–25","25-26":"2025–26"
 };
-const CURRENT_YEAR = "24-25";
+const CURRENT_YEAR = "25-26";
+
+// ── Currency notes per country ────────────────────────────────────────────────
+// Add or update entries here to show a currency note beside local fares.
+const COUNTRY_CURRENCIES = {
+  "Australia":      { code:"AUD", name:"Australian dollar",  symbol:"A$" },
+  "New Zealand":    { code:"NZD", name:"New Zealand dollar", symbol:"NZ$" },
+  "United Kingdom": { code:"GBP", name:"British pound",      symbol:"£" },
+  "United States":  { code:"USD", name:"US dollar",          symbol:"US$" },
+  "Canada":         { code:"CAD", name:"Canadian dollar",    symbol:"CA$" },
+  "Japan":          { code:"JPY", name:"Japanese yen",       symbol:"¥" },
+  "Singapore":      { code:"SGD", name:"Singapore dollar",   symbol:"S$" },
+  "Hong Kong":      { code:"HKD", name:"Hong Kong dollar",   symbol:"HK$" },
+  "Germany":        { code:"EUR", name:"Euro",               symbol:"€" },
+  "France":         { code:"EUR", name:"Euro",               symbol:"€" },
+  "Netherlands":    { code:"EUR", name:"Euro",               symbol:"€" },
+  "Sweden":         { code:"SEK", name:"Swedish krona",      symbol:"kr" },
+  "Norway":         { code:"NOK", name:"Norwegian krone",    symbol:"kr" },
+  "Denmark":        { code:"DKK", name:"Danish krone",       symbol:"kr" },
+  "Switzerland":    { code:"CHF", name:"Swiss franc",        symbol:"CHF" },
+  "South Korea":    { code:"KRW", name:"South Korean won",   symbol:"₩" },
+  "China":          { code:"CNY", name:"Chinese yuan",       symbol:"¥" },
+  "India":          { code:"INR", name:"Indian rupee",       symbol:"₹" },
+  "Brazil":         { code:"BRL", name:"Brazilian real",     symbol:"R$" },
+  "Mexico":         { code:"MXN", name:"Mexican peso",       symbol:"MX$" },
+  "South Africa":   { code:"ZAR", name:"South African rand", symbol:"R" },
+};
+
+// ── Product-level commentary ──────────────────────────────────────────────────
+// Add notes to specific fare products by product_id.
+// These appear as an information note on the relevant row in the fare table.
+// To add a note: PRODUCT_NOTES[product_id] = "Your note here."
+// product_id values can be found by inspecting the database or CSV exports.
+const PRODUCT_NOTES = {
+  // Example entries (remove or replace with real product_ids):
+  // 1234: "This fare was restructured in 2022–23 as part of a zone simplification.",
+  // 5678: "Concession eligibility was extended in 2023–24 to include tertiary students.",
+};
 
 // ── API ───────────────────────────────────────────────────────────────────────
 async function apiFetch(endpoint, params = {}) {
@@ -24,7 +61,6 @@ async function apiFetch(endpoint, params = {}) {
 // ── Logo ──────────────────────────────────────────────────────────────────────
 // Light variant (white + light-green) — for use on dark backgrounds
 function N2Logo({ height = 32 }) {
-  // viewBox: 2020 × 444.1 (full logo with wordmark)
   const w = Math.round(height * (2020 / 444.1));
   return (
     <svg width={w} height={height} viewBox="0 0 2020 444.1" xmlns="http://www.w3.org/2000/svg">
@@ -230,6 +266,173 @@ function TrendChart({ products, metric }) {
             <span style={{ maxWidth:260, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.label}</span>
           </div>
         ))}
+
+        {/* ═══ ABOUT THE DATA ═══ */}
+        {mainTab==="about" && (
+          <div style={{maxWidth:820}}>
+            <div style={{...S.tabWrap, marginBottom:20}}>
+              {[
+                ["methodology","Methodology"],
+                ["affordability","Affordability metrics"],
+                ["collection","Data collection"],
+                ["coverage","Coverage & limitations"],
+              ].map(([k,l])=>(
+                <button key={k} style={S.tab(aboutSection===k)} onClick={()=>setAboutSection(k)}>{l}</button>
+              ))}
+            </div>
+
+            {aboutSection==="methodology" && (
+              <div style={S.card}>
+                <div style={S.cardTitle}>How the data is collected and structured</div>
+                <p style={aboutStyle.p}>
+                  The NineSquared Global Fares Database is an annual dataset tracking public transport fare products
+                  across 47 countries and 116 cities. Data is collected each financial year (July to June,
+                  following the Australian convention) from official transit authority sources, published fare schedules,
+                  and government transport reports.
+                </p>
+                <p style={aboutStyle.p}>
+                  Each <strong>fare product</strong> is a unique combination of attributes: city, transit system, fare
+                  system (e.g. zonal or flat), ticket category (e.g. single, pass, cap), passenger type
+                  (e.g. adult, concession), zone, peak/off-peak status, and payment media. A stable{" "}
+                  <strong>product ID</strong> allows the same fare product to be tracked across all eight years of data
+                  (2018–19 to 2025–26), enabling genuine time-series comparison.
+                </p>
+                <p style={aboutStyle.p}>
+                  Fares are recorded in <strong>local currency</strong> as published by the transit authority.
+                  To enable cross-country comparison, each fare is also expressed in purchasing power parity (PPP)
+                  terms and as a proportion of local wage rates — see the Affordability Metrics section for details.
+                </p>
+                <div style={aboutStyle.infoBox}>
+                  <strong>Financial year convention:</strong> A fare recorded as "2024–25" was the published fare
+                  in effect during the period 1 July 2024 to 30 June 2025. Data is collected and updated annually
+                  around the end of June each year.
+                </div>
+              </div>
+            )}
+
+            {aboutSection==="affordability" && (
+              <div style={S.card}>
+                <div style={S.cardTitle}>Understanding the affordability metrics</div>
+                <p style={aboutStyle.p}>
+                  Raw fare prices in local currency are not directly comparable across countries — a fare of $3.50
+                  means something very different in Sydney than in Mumbai. NineSquared expresses every fare using
+                  three additional metrics that allow meaningful cross-city comparison.
+                </p>
+                <div style={aboutStyle.metricCard}>
+                  <div style={aboutStyle.metricTitle}>Local fare (local currency)</div>
+                  <p style={aboutStyle.metricDesc}>
+                    The published fare as recorded in the local currency of the country. Use this for
+                    within-country comparisons or to understand absolute fare levels. <em>Not suitable
+                    for direct comparison across countries with different currencies.</em>
+                  </p>
+                </div>
+                <div style={aboutStyle.metricCard}>
+                  <div style={aboutStyle.metricTitle}>USD (PPP) — Purchasing Power Parity</div>
+                  <p style={aboutStyle.metricDesc}>
+                    The fare expressed in US dollars, adjusted for purchasing power parity. PPP adjustment
+                    accounts for differences in price levels between countries, so that a "dollar" represents
+                    the same real purchasing power in each city. PPP rates are sourced from the OECD and
+                    World Bank. This is the <strong>recommended metric for cross-country fare comparisons</strong>.
+                  </p>
+                </div>
+                <div style={aboutStyle.metricCard}>
+                  <div style={aboutStyle.metricTitle}>Minimum wage minutes</div>
+                  <p style={aboutStyle.metricDesc}>
+                    How many minutes of work at the statutory minimum wage are required to earn enough to
+                    pay for this fare. This metric contextualises affordability for lower-income workers
+                    and is particularly useful for assessing equity implications of fare levels.
+                  </p>
+                </div>
+                <div style={aboutStyle.metricCard}>
+                  <div style={aboutStyle.metricTitle}>Average wage minutes</div>
+                  <p style={aboutStyle.metricDesc}>
+                    How many minutes of work at the mean wage are required to pay for this fare. This
+                    provides a complementary affordability measure for the broader working population.
+                    Average wage data is sourced from the OECD and national statistical agencies.
+                  </p>
+                </div>
+                <div style={aboutStyle.infoBox}>
+                  <strong>Colour coding in affordability views:</strong> Green indicates a fare that is
+                  relatively affordable compared to others in the same result set; amber is moderate; red
+                  indicates the fare is relatively expensive. Colours are relative to the current result
+                  set — they are not absolute benchmarks.
+                </div>
+              </div>
+            )}
+
+            {aboutSection==="collection" && (
+              <div style={S.card}>
+                <div style={S.cardTitle}>Data collection process</div>
+                <p style={aboutStyle.p}>
+                  Fare data is collected annually by the NineSquared research team from primary sources:
+                  official transit authority websites, published fare schedules, and government transport
+                  reports. Where fares are published in multiple locations, the most authoritative source
+                  (typically the transit authority's own published schedule) is used.
+                </p>
+                <p style={aboutStyle.p}>
+                  Data collection occurs around the end of each financial year (June), capturing the fare
+                  structure in effect at that time. Mid-year fare changes are not typically captured unless
+                  they represent a significant restructure.
+                </p>
+                <p style={aboutStyle.p}>
+                  <strong>Unified passenger types</strong> and <strong>unified ticket types</strong> are
+                  NineSquared classifications applied to harmonise the wide variety of naming conventions
+                  used by different transit authorities. For example, what one system calls "Concession"
+                  another may call "Pensioner", "Senior", or "Reduced" — these are mapped to a common
+                  classification to enable cross-system comparison.
+                </p>
+                <p style={aboutStyle.p}>
+                  <strong>Report fares</strong> are the subset of fare products selected by NineSquared
+                  as representative benchmarks for each city — typically the most commonly used adult
+                  single fare, concession fare, and pass products. These are used in the annual
+                  NineSquared Fares Benchmarking Report.
+                </p>
+                <div style={aboutStyle.infoBox}>
+                  <strong>Questions or corrections?</strong> If you identify a discrepancy or have access
+                  to more current fare data, please contact the NineSquared team. We welcome feedback from
+                  transport authorities with direct knowledge of their own systems.
+                </div>
+              </div>
+            )}
+
+            {aboutSection==="coverage" && (
+              <div style={S.card}>
+                <div style={S.cardTitle}>Coverage & known limitations</div>
+                <p style={aboutStyle.p}>
+                  The database currently covers <strong>47 countries, 116 cities, and approximately 140 transit
+                  systems</strong>, with data from 2018–19 through 2025–26. Coverage is strongest in OECD member
+                  countries; some lower-income countries have partial coverage due to limited availability of
+                  published fare schedules in accessible formats.
+                </p>
+                <div style={aboutStyle.sectionHead}>Known limitations</div>
+                <ul style={aboutStyle.ul}>
+                  <li style={aboutStyle.li}>
+                    <strong>Local currency:</strong> Fares are recorded in the local currency at the time of
+                    collection. Use the PPP metric for cross-country comparisons rather than converting local
+                    fares at spot rates.
+                  </li>
+                  <li style={aboutStyle.li}>
+                    <strong>Payment media combinations:</strong> Some transit systems price differently by
+                    payment method (e.g. cash vs. smartcard). Where this occurs, separate fare products are
+                    recorded. Filtering by payment media returns all products that include that payment type.
+                  </li>
+                  <li style={aboutStyle.li}>
+                    <strong>Discontinued products:</strong> Fare products no longer offered are retained with
+                    historical pricing and marked as discontinued. They can be excluded using the filter.
+                  </li>
+                  <li style={aboutStyle.li}>
+                    <strong>PPP and wage data:</strong> PPP conversion factors and wage data are updated
+                    annually but may lag the most recent OECD or World Bank releases by one year.
+                  </li>
+                  <li style={aboutStyle.li}>
+                    <strong>Mid-year changes:</strong> Fares changed outside the annual June collection
+                    window may not be captured until the following year's data update.
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -391,6 +594,7 @@ export default function FaresPlatform() {
   const [browseTab, setBrowseTab]     = useState("table");
   const [compareTab, setCompareTab]   = useState("table");
   const [trendMetric, setTrendMetric] = useState("fare");
+  const [aboutSection, setAboutSection] = useState("methodology");
 
   // Compare state
   const [compareA, setCompareA]       = useState("");
@@ -519,8 +723,20 @@ export default function FaresPlatform() {
   // ── Product table ─────────────────────────────────────────────────────────
   const ProductTable = ({ prods, showCountry=true }) => {
     const activeYears = YEARS.filter(y => prods.some(p => p.observations[y]));
+    // Determine currencies in result set
+    const uniqueCountries = [...new Set(prods.map(p=>p.country))].filter(Boolean);
+    const currencies = [...new Set(uniqueCountries.map(c => COUNTRY_CURRENCIES[c]?.code).filter(Boolean))];
+    const currencyNote = uniqueCountries.length === 1 && COUNTRY_CURRENCIES[uniqueCountries[0]]
+      ? `Fares shown in ${COUNTRY_CURRENCIES[uniqueCountries[0]].name} (${COUNTRY_CURRENCIES[uniqueCountries[0]].code}). Use USD (PPP) for cross-country comparison.`
+      : currencies.length > 1
+        ? `Fares shown in local currencies (${currencies.join(", ")}). Use USD (PPP) metric for cross-country comparison.`
+        : "Fares shown in local currency. Use USD (PPP) metric for cross-country comparison.";
     return (
       <div style={{ ...S.card, padding:0, overflow:"hidden" }}>
+        <div style={{padding:"8px 14px",background:"#f8fafc",borderBottom:"1px solid #e2e8f0",
+          fontSize:12,color:"#64748b",display:"flex",alignItems:"center",gap:6}}>
+          <span style={{color:"#94a3b8"}}>ⓘ</span> {currencyNote}
+        </div>
         <div style={{ overflowX:"auto" }}>
           <table style={S.table}>
             <thead>
@@ -545,7 +761,8 @@ export default function FaresPlatform() {
                 YEARS.forEach(y => { if(p.observations[y]?.fare != null) farePoints[y] = p.observations[y].fare; });
                 const latestObs = p.observations[CURRENT_YEAR] || p.observations[YEARS.slice().reverse().find(y=>p.observations[y])];
                 return (
-                  <tr key={p.product_id}
+                  <React.Fragment key={p.product_id}>
+                  <tr
                     style={{ opacity: p.product_discontinued ? 0.65 : 1 }}
                     onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
                     onMouseLeave={e=>e.currentTarget.style.background=""}>
@@ -576,6 +793,16 @@ export default function FaresPlatform() {
                     })}
                     <td style={{...S.td,paddingRight:12}}><Sparkline points={farePoints}/></td>
                   </tr>
+                  {PRODUCT_NOTES[p.product_id] && (
+                    <tr>
+                      <td colSpan={99} style={{padding:"5px 14px 8px",background:"#fffbeb",
+                        borderBottom:"1px solid #fde68a",fontSize:11.5,color:"#78350f"}}>
+                        <span style={{fontWeight:700,marginRight:6}}>ⓘ Note:</span>
+                        {PRODUCT_NOTES[p.product_id]}
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 );
               })}
             </tbody>
@@ -676,7 +903,7 @@ export default function FaresPlatform() {
         {/* Top tabs */}
         <div style={{display:"flex",marginBottom:16}}>
           <div style={S.tabWrap}>
-            {[["browse","Browse & Search"],["compare","Compare Cities"]].map(([t,l])=>(
+            {[["browse","Browse & Search"],["compare","Compare Cities"],["about","About the Data"]].map(([t,l])=>(
               <button key={t} style={S.tab(mainTab===t)} onClick={()=>setMainTab(t)}>{l}</button>
             ))}
           </div>
@@ -992,3 +1219,17 @@ export default function FaresPlatform() {
     </div>
   );
 }
+
+// ── About page styles ─────────────────────────────────────────────────────────
+const aboutStyle = {
+  p: { fontSize:14, color:"#374151", lineHeight:1.8, marginBottom:14, marginTop:0 },
+  infoBox: { background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:8,
+    padding:"12px 16px", fontSize:13, color:"#1e40af", lineHeight:1.7, marginTop:16 },
+  metricCard: { borderLeft:"3px solid #2563eb", paddingLeft:14, marginBottom:18 },
+  metricTitle: { fontSize:13, fontWeight:700, color:"#0f172a", marginBottom:6 },
+  metricDesc: { fontSize:13, color:"#4b5563", lineHeight:1.75, margin:0 },
+  sectionHead: { fontSize:12, fontWeight:700, color:"#64748b", textTransform:"uppercase",
+    letterSpacing:"0.06em", marginBottom:12, marginTop:20 },
+  ul: { paddingLeft:0, listStyle:"none", margin:0 },
+  li: { fontSize:13, color:"#374151", lineHeight:1.75, marginBottom:12, paddingLeft:0 },
+};
