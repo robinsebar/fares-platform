@@ -211,34 +211,54 @@ function TrendChart({ products, metric }) {
   const allVals = series.flatMap(s => s.points.map(pt => pt.val));
   if (!allVals.length) return (
     <div style={{ color:"#94a3b8", textAlign:"center", padding:40, fontSize:13 }}>
-      No price data available — add observations for these products
+      No price data available for this selection
     </div>
   );
 
   const maxVal = Math.max(...allVals);
+  const minVal = Math.min(...allVals);
+  // Use a range with a fallback so flat-fare cities (all same value) still render
+  const range = maxVal - minVal || maxVal || 1;
+  // Add 10% padding above and below so lines don't sit right on the axis edges
+  const chartMin = Math.max(0, minVal - range * 0.1);
+  const chartMax = maxVal + range * 0.1;
+  const chartRange = chartMax - chartMin || 1;
+
   const activeYears = YEARS.filter(y => series.some(s => s.points.find(pt => pt.year === y)));
-  const W=600, H=220, PL=64, PR=20, PT=20, PB=44;
+  const W=600, H=240, PL=72, PR=20, PT=20, PB=44;
   const iW=W-PL-PR, iH=H-PT-PB;
 
-  const xOf = y => PL + (activeYears.indexOf(y) / (activeYears.length-1 || 1)) * iW;
-  const yOf = v => PT + iH * (1 - v / maxVal);
+  const xOf = y => PL + (activeYears.indexOf(y) / Math.max(activeYears.length - 1, 1)) * iW;
+  const yOf = v => PT + iH * (1 - (v - chartMin) / chartRange);
+
+  // Y-axis: 5 evenly-spaced gridlines between chartMin and chartMax
+  const gridLines = [0, 0.25, 0.5, 0.75, 1].map(t => ({
+    y: PT + iH * (1 - t),
+    val: chartMin + chartRange * t,
+  }));
+
+  const fmtVal = v => v >= 1000 ? v.toLocaleString(undefined, {maximumFractionDigits:0})
+    : v >= 10 ? v.toFixed(1) : v.toFixed(2);
 
   const metricLabel = { fare:"Local fare", ppp:"USD (PPP)", min_wage:"Min wage (mins)", avg_wage:"Avg wage (mins)" }[metric];
+
+  // Pre-compute pixel coordinates as numbers (avoids string-split issues)
+  const seriesWithCoords = series.map(s => ({
+    ...s,
+    coords: s.points.map(pt => ({ x: xOf(pt.year), y: yOf(pt.val) })),
+  }));
 
   return (
     <div style={{ overflowX:"auto" }}>
       <svg width={W} height={H} style={{ fontFamily:"inherit", display:"block" }}>
-        {[0,0.25,0.5,0.75,1].map(t => {
-          const y = PT + iH*(1-t), val = maxVal*t;
-          return (
-            <g key={t}>
-              <line x1={PL} y1={y} x2={PL+iW} y2={y} stroke="#e5e7eb" strokeWidth="0.5" strokeDasharray="4 4"/>
-              <text x={PL-6} y={y+4} textAnchor="end" fontSize="10" fill="#9ca3af">
-                {val < 10 ? val.toFixed(2) : Math.round(val)}
-              </text>
-            </g>
-          );
-        })}
+        {gridLines.map(({ y, val }) => (
+          <g key={val}>
+            <line x1={PL} y1={y} x2={PL+iW} y2={y} stroke="#e5e7eb" strokeWidth="0.5" strokeDasharray="4 4"/>
+            <text x={PL-6} y={y+4} textAnchor="end" fontSize="10" fill="#9ca3af">
+              {fmtVal(val)}
+            </text>
+          </g>
+        ))}
         <text x={18} y={PT+iH/2} textAnchor="middle" fontSize="10" fill="#64748b"
           transform={`rotate(-90,18,${PT+iH/2})`}>{metricLabel}</text>
         {activeYears.map(y => (
@@ -246,18 +266,19 @@ function TrendChart({ products, metric }) {
             {YEAR_LABELS[y]}
           </text>
         ))}
-        {series.map(s => {
-          const pts = s.points.map(pt => `${xOf(pt.year)},${yOf(pt.val)}`);
-          return (
-            <g key={s.label}>
-              {pts.length > 1 && <polyline points={pts.join(" ")} fill="none"
-                stroke={s.colour} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>}
-              {pts.map((pt, i) => (
-                <circle key={i} cx={pt.split(",")[0]} cy={pt.split(",")[1]} r="3" fill={s.colour}/>
-              ))}
-            </g>
-          );
-        })}
+        {seriesWithCoords.map(s => (
+          <g key={s.label}>
+            {s.coords.length > 1 && (
+              <polyline
+                points={s.coords.map(c => `${c.x},${c.y}`).join(" ")}
+                fill="none" stroke={s.colour} strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round"/>
+            )}
+            {s.coords.map((c, i) => (
+              <circle key={i} cx={c.x} cy={c.y} r="3.5" fill={s.colour}/>
+            ))}
+          </g>
+        ))}
       </svg>
       <div style={{ display:"flex", flexWrap:"wrap", gap:"6px 14px", marginTop:10 }}>
         {series.map(s => (
