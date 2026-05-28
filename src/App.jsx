@@ -589,6 +589,157 @@ function groupByProduct(rows) {
   return Object.values(map);
 }
 
+// ── Product table (top-level to avoid remount on parent re-render) ───────────
+function ProductTable({ prods, showCountry=true }) {
+  const activeYears = YEARS.filter(y => prods.some(p => p.observations[y]));
+  const uniqueCountries = [...new Set(prods.map(p=>p.country))].filter(Boolean);
+  const currencies = [...new Set(uniqueCountries.map(c => COUNTRY_CURRENCIES[c]?.code).filter(Boolean))];
+  const currencyNote = uniqueCountries.length === 1 && COUNTRY_CURRENCIES[uniqueCountries[0]]
+    ? `Fares shown in ${COUNTRY_CURRENCIES[uniqueCountries[0]].name} (${COUNTRY_CURRENCIES[uniqueCountries[0]].code}). Use USD (PPP) for cross-country comparison.`
+    : currencies.length > 1
+      ? `Fares shown in local currencies (${currencies.join(", ")}). Use USD (PPP) metric for cross-country comparison.`
+      : "Fares shown in local currency. Use USD (PPP) metric for cross-country comparison.";
+  return (
+    <div style={{ ...S.card, padding:0, overflow:"hidden" }}>
+      <div style={{padding:"8px 14px",background:"#f8fafc",borderBottom:"1px solid #e2e8f0",
+        fontSize:12,color:"#64748b",display:"flex",alignItems:"center",gap:6}}>
+        <span style={{color:"#94a3b8"}}>ⓘ</span> {currencyNote}
+      </div>
+      <div style={{ overflowX:"auto" }}>
+        <table style={S.table}>
+          <thead>
+            <tr>
+              {showCountry && <th style={S.th}>Country</th>}
+              <th style={S.th}>City</th>
+              <th style={S.th}>System</th>
+              <th style={S.th}>Fare System</th>
+              <th style={S.th}>Category</th>
+              <th style={S.th}>Ticket Type</th>
+              <th style={S.th}>Passenger</th>
+              <th style={S.th}>Zone</th>
+              <th style={S.th}>Peak</th>
+              <th style={S.th}>Payment media</th>
+              {activeYears.map(y => <th key={y} style={{...S.th,textAlign:"right"}}>{YEAR_LABELS[y]}</th>)}
+              <th style={S.th}>Trend</th>
+            </tr>
+          </thead>
+          <tbody>
+            {prods.map(p => {
+              const farePoints = {};
+              YEARS.forEach(y => { if(p.observations[y]?.fare != null) farePoints[y] = p.observations[y].fare; });
+              return (
+                <React.Fragment key={p.product_id}>
+                  <tr
+                    style={{ opacity: p.product_discontinued ? 0.65 : 1 }}
+                    onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+                    onMouseLeave={e=>e.currentTarget.style.background=""}>
+                    {showCountry && <td style={S.td}>{p.country}</td>}
+                    <td style={S.td}>{p.city}</td>
+                    <td style={S.tdMuted}>{p.transit_system}</td>
+                    <td style={S.tdMuted}>{p.fare_system||"—"}</td>
+                    <td style={S.td}><CategoryBadge cat={p.ticket_category}/></td>
+                    <td style={S.td}>
+                      <div style={{fontWeight:500}}>{p.unified_ticket_type}</div>
+                      <div style={{color:"#94a3b8",fontSize:11}}>{p.zone||""}</div>
+                      {p.product_discontinued && <DiscontinuedBadge/>}
+                    </td>
+                    <td style={S.tdMuted}>{p.unified_passenger_type}</td>
+                    <td style={S.tdMuted}>{p.zone||"—"}</td>
+                    <td style={S.tdMuted}>{p.peak_period||"—"}</td>
+                    <td style={S.tdMuted}>{p.payment_media||"—"}</td>
+                    {activeYears.map(y => {
+                      const obs = p.observations[y];
+                      return (
+                        <td key={y} style={S.tdNum}>
+                          {obs?.fare != null
+                            ? <span title={obs.comments||""}>{obs.fare < 1000 ? obs.fare.toFixed(2) : obs.fare.toLocaleString()}</span>
+                            : <span style={{color:"#e2e8f0"}}>—</span>}
+                          {obs && !obs.is_active && <InactiveBadge/>}
+                        </td>
+                      );
+                    })}
+                    <td style={{...S.td,paddingRight:12}}><Sparkline points={farePoints}/></td>
+                  </tr>
+                  {PRODUCT_NOTES[p.product_id] && (
+                    <tr>
+                      <td colSpan={99} style={{padding:"5px 14px 8px",background:"#fffbeb",
+                        borderBottom:"1px solid #fde68a",fontSize:11.5,color:"#78350f"}}>
+                        <span style={{fontWeight:700,marginRight:6}}>ⓘ Note:</span>
+                        {PRODUCT_NOTES[p.product_id]}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {prods.length >= 500 && (
+        <div style={{padding:"9px 14px",background:"#fffbeb",borderTop:"1px solid #fde68a",fontSize:12,color:"#92400e"}}>
+          Showing first 500 results — refine your filters for a more specific view.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Affordability table (top-level to avoid remount on parent re-render) ──────
+function AffordabilityTable({ prods }) {
+  const year = YEARS.slice().reverse().find(y => prods.some(p => p.observations[y])) || CURRENT_YEAR;
+  const allPPP = prods.map(p=>p.observations[year]?.ppp).filter(Boolean);
+  const allMin = prods.map(p=>p.observations[year]?.min_wage_mins).filter(Boolean);
+  const allAvg = prods.map(p=>p.observations[year]?.avg_wage_mins).filter(Boolean);
+  return (
+    <div style={{ ...S.card, padding:0, overflow:"hidden" }}>
+      <div style={{padding:"12px 16px 10px",borderBottom:"1px solid #f1f5f9",fontSize:12,color:"#64748b"}}>
+        Showing most recent year with data. Min/Avg wage = minutes of work to afford fare.
+        Colour: <span style={{color:"#059669",fontWeight:600}}>green</span> = affordable,
+        <span style={{color:"#d97706",fontWeight:600}}> amber</span> = moderate,
+        <span style={{color:"#dc2626",fontWeight:600}}> red</span> = expensive relative to peers.
+      </div>
+      <div style={{overflowX:"auto"}}>
+        <table style={S.table}>
+          <thead><tr>
+            {["Country","City","System","Category","Ticket Type","Passenger","Zone",
+              `Fare (${YEAR_LABELS[year]})`,`USD PPP`,`Min wage (mins)`,`Avg wage (mins)`].map(h=>(
+              <th key={h} style={S.th}>{h}</th>
+            ))}
+          </tr></thead>
+          <tbody>
+            {prods.map(p => {
+              const obs = p.observations[year] || {};
+              return (
+                <tr key={p.product_id}
+                  onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+                  onMouseLeave={e=>e.currentTarget.style.background=""}>
+                  <td style={S.td}>{p.country}</td>
+                  <td style={S.td}>{p.city}</td>
+                  <td style={S.tdMuted}>{p.transit_system}</td>
+                  <td style={S.td}><CategoryBadge cat={p.ticket_category}/></td>
+                  <td style={S.td}>{p.unified_ticket_type}</td>
+                  <td style={S.tdMuted}>{p.unified_passenger_type}</td>
+                  <td style={S.tdMuted}>{p.zone||"—"}</td>
+                  <td style={S.tdNum}>{obs.fare!=null ? obs.fare.toFixed(2) : "—"}</td>
+                  <td style={{...S.tdNum, color:S.econColour(obs.ppp,allPPP), fontWeight:obs.ppp?600:400}}>
+                    {obs.ppp!=null ? obs.ppp.toFixed(4) : "—"}
+                  </td>
+                  <td style={{...S.tdNum, color:S.econColour(obs.min_wage_mins,allMin), fontWeight:obs.min_wage_mins?600:400}}>
+                    {obs.min_wage_mins!=null ? obs.min_wage_mins.toFixed(1) : "—"}
+                  </td>
+                  <td style={{...S.tdNum, color:S.econColour(obs.avg_wage_mins,allAvg), fontWeight:obs.avg_wage_mins?600:400}}>
+                    {obs.avg_wage_mins!=null ? obs.avg_wage_mins.toFixed(1) : "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ── Main App ──────────────────────────────────────────────────────────────────
 export default function FaresPlatform() {
   const [allCities, setAllCities]   = useState([]);
@@ -739,159 +890,6 @@ export default function FaresPlatform() {
     const csv = [headers,...rows].map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");
     const a = document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
     a.download="ninesquared_fares_export.csv"; a.click();
-  };
-
-  // ── Product table ─────────────────────────────────────────────────────────
-  const ProductTable = ({ prods, showCountry=true }) => {
-    const activeYears = YEARS.filter(y => prods.some(p => p.observations[y]));
-    // Determine currencies in result set
-    const uniqueCountries = [...new Set(prods.map(p=>p.country))].filter(Boolean);
-    const currencies = [...new Set(uniqueCountries.map(c => COUNTRY_CURRENCIES[c]?.code).filter(Boolean))];
-    const currencyNote = uniqueCountries.length === 1 && COUNTRY_CURRENCIES[uniqueCountries[0]]
-      ? `Fares shown in ${COUNTRY_CURRENCIES[uniqueCountries[0]].name} (${COUNTRY_CURRENCIES[uniqueCountries[0]].code}). Use USD (PPP) for cross-country comparison.`
-      : currencies.length > 1
-        ? `Fares shown in local currencies (${currencies.join(", ")}). Use USD (PPP) metric for cross-country comparison.`
-        : "Fares shown in local currency. Use USD (PPP) metric for cross-country comparison.";
-    return (
-      <div style={{ ...S.card, padding:0, overflow:"hidden" }}>
-        <div style={{padding:"8px 14px",background:"#f8fafc",borderBottom:"1px solid #e2e8f0",
-          fontSize:12,color:"#64748b",display:"flex",alignItems:"center",gap:6}}>
-          <span style={{color:"#94a3b8"}}>ⓘ</span> {currencyNote}
-        </div>
-        <div style={{ overflowX:"auto" }}>
-          <table style={S.table}>
-            <thead>
-              <tr>
-                {showCountry && <th style={S.th}>Country</th>}
-                <th style={S.th}>City</th>
-                <th style={S.th}>System</th>
-                <th style={S.th}>Fare System</th>
-                <th style={S.th}>Category</th>
-                <th style={S.th}>Ticket Type</th>
-                <th style={S.th}>Passenger</th>
-                <th style={S.th}>Zone</th>
-                <th style={S.th}>Peak</th>
-                <th style={S.th}>Payment media</th>
-                {activeYears.map(y => <th key={y} style={{...S.th,textAlign:"right"}}>{YEAR_LABELS[y]}</th>)}
-                <th style={S.th}>Trend</th>
-              </tr>
-            </thead>
-            <tbody>
-              {prods.map(p => {
-                const farePoints = {};
-                YEARS.forEach(y => { if(p.observations[y]?.fare != null) farePoints[y] = p.observations[y].fare; });
-                const latestObs = p.observations[CURRENT_YEAR] || p.observations[YEARS.slice().reverse().find(y=>p.observations[y])];
-                return (
-                  <React.Fragment key={p.product_id}>
-                  <tr
-                    style={{ opacity: p.product_discontinued ? 0.65 : 1 }}
-                    onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
-                    onMouseLeave={e=>e.currentTarget.style.background=""}>
-                    {showCountry && <td style={S.td}>{p.country}</td>}
-                    <td style={S.td}>{p.city}</td>
-                    <td style={S.tdMuted}>{p.transit_system}</td>
-                    <td style={S.tdMuted}>{p.fare_system||"—"}</td>
-                    <td style={S.td}><CategoryBadge cat={p.ticket_category}/></td>
-                    <td style={S.td}>
-                      <div style={{fontWeight:500}}>{p.unified_ticket_type}</div>
-                      <div style={{color:"#94a3b8",fontSize:11}}>{p.zone||""}</div>
-                      {p.product_discontinued && <DiscontinuedBadge/>}
-                    </td>
-                    <td style={S.tdMuted}>{p.unified_passenger_type}</td>
-                    <td style={S.tdMuted}>{p.zone||"—"}</td>
-                    <td style={S.tdMuted}>{p.peak_period||"—"}</td>
-                    <td style={S.tdMuted}>{p.payment_media||"—"}</td>
-                    {activeYears.map(y => {
-                      const obs = p.observations[y];
-                      return (
-                        <td key={y} style={S.tdNum}>
-                          {obs?.fare != null
-                            ? <span title={obs.comments||""}>{obs.fare < 1000 ? obs.fare.toFixed(2) : obs.fare.toLocaleString()}</span>
-                            : <span style={{color:"#e2e8f0"}}>—</span>}
-                          {obs && !obs.is_active && <InactiveBadge/>}
-                        </td>
-                      );
-                    })}
-                    <td style={{...S.td,paddingRight:12}}><Sparkline points={farePoints}/></td>
-                  </tr>
-                  {PRODUCT_NOTES[p.product_id] && (
-                    <tr>
-                      <td colSpan={99} style={{padding:"5px 14px 8px",background:"#fffbeb",
-                        borderBottom:"1px solid #fde68a",fontSize:11.5,color:"#78350f"}}>
-                        <span style={{fontWeight:700,marginRight:6}}>ⓘ Note:</span>
-                        {PRODUCT_NOTES[p.product_id]}
-                      </td>
-                    </tr>
-                  )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        {prods.length >= 500 && (
-          <div style={{padding:"9px 14px",background:"#fffbeb",borderTop:"1px solid #fde68a",fontSize:12,color:"#92400e"}}>
-            Showing first 500 results — refine your filters for a more specific view.
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // ── Affordability table ───────────────────────────────────────────────────
-  const AffordabilityTable = ({ prods }) => {
-    const year = YEARS.slice().reverse().find(y => prods.some(p => p.observations[y])) || CURRENT_YEAR;
-    const allPPP = prods.map(p=>p.observations[year]?.ppp).filter(Boolean);
-    const allMin = prods.map(p=>p.observations[year]?.min_wage_mins).filter(Boolean);
-    const allAvg = prods.map(p=>p.observations[year]?.avg_wage_mins).filter(Boolean);
-    return (
-      <div style={{ ...S.card, padding:0, overflow:"hidden" }}>
-        <div style={{padding:"12px 16px 10px",borderBottom:"1px solid #f1f5f9",fontSize:12,color:"#64748b"}}>
-          Showing most recent year with data. Min/Avg wage = minutes of work to afford fare.
-          Colour: <span style={{color:"#059669",fontWeight:600}}>green</span> = affordable,
-          <span style={{color:"#d97706",fontWeight:600}}> amber</span> = moderate,
-          <span style={{color:"#dc2626",fontWeight:600}}> red</span> = expensive relative to peers.
-        </div>
-        <div style={{overflowX:"auto"}}>
-          <table style={S.table}>
-            <thead><tr>
-              {["Country","City","System","Category","Ticket Type","Passenger","Zone",
-                `Fare (${YEAR_LABELS[year]})`,`USD PPP`,`Min wage (mins)`,`Avg wage (mins)`].map(h=>(
-                <th key={h} style={S.th}>{h}</th>
-              ))}
-            </tr></thead>
-            <tbody>
-              {prods.map(p => {
-                const obs = p.observations[year] || {};
-                return (
-                  <tr key={p.product_id}
-                    onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
-                    onMouseLeave={e=>e.currentTarget.style.background=""}>
-                    <td style={S.td}>{p.country}</td>
-                    <td style={S.td}>{p.city}</td>
-                    <td style={S.tdMuted}>{p.transit_system}</td>
-                    <td style={S.td}><CategoryBadge cat={p.ticket_category}/></td>
-                    <td style={S.td}>{p.unified_ticket_type}</td>
-                    <td style={S.tdMuted}>{p.unified_passenger_type}</td>
-                    <td style={S.tdMuted}>{p.zone||"—"}</td>
-                    <td style={S.tdNum}>{obs.fare!=null ? obs.fare.toFixed(2) : "—"}</td>
-                    <td style={{...S.tdNum, color:S.econColour(obs.ppp,allPPP), fontWeight:obs.ppp?600:400}}>
-                      {obs.ppp!=null ? obs.ppp.toFixed(4) : "—"}
-                    </td>
-                    <td style={{...S.tdNum, color:S.econColour(obs.min_wage_mins,allMin), fontWeight:obs.min_wage_mins?600:400}}>
-                      {obs.min_wage_mins!=null ? obs.min_wage_mins.toFixed(1) : "—"}
-                    </td>
-                    <td style={{...S.tdNum, color:S.econColour(obs.avg_wage_mins,allAvg), fontWeight:obs.avg_wage_mins?600:400}}>
-                      {obs.avg_wage_mins!=null ? obs.avg_wage_mins.toFixed(1) : "—"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
   };
 
   // Stats
