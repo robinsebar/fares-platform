@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 
+// ── NineSquared brand fonts (Google Fonts) ────────────────────────────────────
+// DM Sans → Elza substitute (humanist sans, clean at UI sizes)
+// Barlow Condensed → P22 Underground substitute (geometric, uppercase labels)
+const fontLink = document.createElement("link");
+fontLink.rel = "stylesheet";
+fontLink.href = "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Barlow+Condensed:wght@500;600;700&display=swap";
+document.head.appendChild(fontLink);
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://dlvjrgubjpslhvwdvtfr.supabase.co/rest/v1";
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
@@ -129,8 +137,8 @@ function N2LogoDark({ height = 32 }) {
 
 // ── Badges ────────────────────────────────────────────────────────────────────
 const CAT_COLOURS = {
-  Single:"#1a56db", Pass:"#0e9f6e", Cap:"#7e3af2",
-  "Multi-Trip":"#ff5a1f", Return:"#c27803", Transfer:"#6b7280", Group:"#0891b2",
+  Single:"#053436", Pass:"#4F7155", Cap:"#7A9899",
+  "Multi-Trip":"#84AA78", Return:"#231F20", Transfer:"#AEC2C3", Group:"#7A9899",
 };
 function CategoryBadge({ cat }) {
   const c = CAT_COLOURS[cat] || "#6b7280";
@@ -154,7 +162,7 @@ function InactiveBadge() {
   return (
     <span title="This fare was not active in this year"
       style={{ display:"inline-block", padding:"1px 6px", borderRadius:3,
-        fontSize:10, fontWeight:700, background:"#f1f5f9", color:"#94a3b8",
+        fontSize:10, fontWeight:700, background:"#E7E9EA", color:"#94a3b8",
         border:"1px solid #e2e8f0", marginLeft:4 }}>INACTIVE</span>
   );
 }
@@ -171,8 +179,8 @@ function Sparkline({ points }) {
     const y = h - pad - ((v-min)/range) * (h - pad*2);
     return `${x},${y}`;
   }).join(" ");
-  const trend = vals[vals.length-1] > vals[0] ? "#ef4444"
-    : vals[vals.length-1] < vals[0] ? "#10b981" : "#94a3b8";
+  const trend = vals[vals.length-1] > vals[0] ? "#b91c1c"
+    : vals[vals.length-1] < vals[0] ? "#2d7a4f" : "#AEC2C3";
   return (
     <svg width={w} height={h}>
       <polyline points={pts} fill="none" stroke={trend} strokeWidth="1.5"
@@ -182,7 +190,7 @@ function Sparkline({ points }) {
 }
 
 // ── Trend chart ───────────────────────────────────────────────────────────────
-const COLOURS = ["#2563eb","#0e9f6e","#7e3af2","#ff5a1f","#c27803","#06b6d4","#ec4899","#84cc16"];
+const COLOURS = ["#053436","#4F7155","#84AA78","#7A9899","#AEC2C3","#231F20","#B2D9A3","#D4DFDF"];
 
 function TrendChart({ products, metric }) {
   // products: array of { product_id, label, observations: {year -> {fare,ppp,min_wage,avg_wage}} }
@@ -254,15 +262,15 @@ function TrendChart({ products, metric }) {
         {gridLines.map(({ y, val }) => (
           <g key={val}>
             <line x1={PL} y1={y} x2={PL+iW} y2={y} stroke="#e5e7eb" strokeWidth="0.5" strokeDasharray="4 4"/>
-            <text x={PL-6} y={y+4} textAnchor="end" fontSize="10" fill="#9ca3af">
+            <text x={PL-6} y={y+4} textAnchor="end" fontSize="10" fill="#AEC2C3">
               {fmtVal(val)}
             </text>
           </g>
         ))}
-        <text x={18} y={PT+iH/2} textAnchor="middle" fontSize="10" fill="#64748b"
+        <text x={18} y={PT+iH/2} textAnchor="middle" fontSize="10" fill="#7A9899"
           transform={`rotate(-90,18,${PT+iH/2})`}>{metricLabel}</text>
         {activeYears.map(y => (
-          <text key={y} x={xOf(y)} y={H-8} textAnchor="middle" fontSize="10" fill="#6b7280">
+          <text key={y} x={xOf(y)} y={H-8} textAnchor="middle" fontSize="10" fill="#7A9899">
             {YEAR_LABELS[y]}
           </text>
         ))}
@@ -303,12 +311,12 @@ function MultiSelect({ label, options, selected, onChange, disabled }) {
       <div onClick={() => !disabled && setOpen(o=>!o)} style={{
         ...LS.select, cursor: disabled ? "not-allowed" : "pointer", userSelect:"none",
         display:"flex", justifyContent:"space-between", alignItems:"center",
-        background: selected.length > 0 ? "#eff6ff" : disabled ? "#f8fafc" : "#fff",
-        borderColor: selected.length > 0 ? "#93c5fd" : "#cbd5e1",
+        background: selected.length > 0 ? "#f0f5f0" : disabled ? "#f4f7f4" : "#fff",
+        borderColor: selected.length > 0 ? "#84AA78" : "#cbd5e1",
         opacity: disabled ? 0.6 : 1,
       }}>
         <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
-          color: selected.length > 0 ? "#1d4ed8" : "#6b7280", fontSize:13 }}>{display}</span>
+          color: selected.length > 0 ? "#3d5a43" : "#6b7280", fontSize:13 }}>{display}</span>
         <span style={{ fontSize:9, color:"#94a3b8", marginLeft:4 }}>{open?"▲":"▼"}</span>
       </div>
       {open && !disabled && (
@@ -317,16 +325,16 @@ function MultiSelect({ label, options, selected, onChange, disabled }) {
           boxShadow:"0 4px 20px rgba(0,0,0,0.12)", maxHeight:240, overflowY:"auto", marginTop:2 }}>
           {selected.length > 0 && (
             <div onClick={() => { onChange([]); setOpen(false); }}
-              style={{ padding:"8px 12px", fontSize:12, color:"#2563eb", cursor:"pointer",
+              style={{ padding:"8px 12px", fontSize:12, color:"#4F7155", cursor:"pointer",
                 borderBottom:"1px solid #f1f5f9", fontWeight:600 }}>✕ Clear</div>
           )}
           {options.map(opt => (
             <div key={opt} onClick={() => toggle(opt)}
               style={{ padding:"7px 12px", fontSize:13, cursor:"pointer", display:"flex",
                 alignItems:"center", gap:8,
-                background: selected.includes(opt) ? "#eff6ff" : "transparent",
-                color: selected.includes(opt) ? "#1d4ed8" : "#374151" }}
-              onMouseEnter={e => { if (!selected.includes(opt)) e.currentTarget.style.background="#f8fafc"; }}
+                background: selected.includes(opt) ? "#f0f5f0" : "transparent",
+                color: selected.includes(opt) ? "#3d5a43" : "#374151" }}
+              onMouseEnter={e => { if (!selected.includes(opt)) e.currentTarget.style.background="#f4f7f4"; }}
               onMouseLeave={e => { if (!selected.includes(opt)) e.currentTarget.style.background="transparent"; }}>
               <span style={{ fontSize:13 }}>{selected.includes(opt) ? "☑" : "☐"}</span>
               <span style={{ flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{opt}</span>
@@ -339,41 +347,84 @@ function MultiSelect({ label, options, selected, onChange, disabled }) {
 }
 
 const LS = {
-  label: { display:"block", fontSize:11, fontWeight:600, color:"#64748b", marginBottom:5, letterSpacing:"0.04em", textTransform:"uppercase" },
-  select: { width:"100%", padding:"8px 10px", borderRadius:6, border:"1px solid #cbd5e1", background:"#fff", outline:"none" },
+  label: { display:"block", fontSize:10.5, fontWeight:600, color:"#7A9899",
+    marginBottom:5, letterSpacing:"0.08em", textTransform:"uppercase",
+    fontFamily:"'Barlow Condensed','Helvetica Neue',sans-serif" },
+  select: { width:"100%", padding:"8px 10px", borderRadius:6,
+    border:"1px solid #AEC2C3", background:"#fff", outline:"none",
+    fontFamily:"'DM Sans','Helvetica Neue',sans-serif", fontSize:13 },
+};
+
+// ── Brand tokens ──────────────────────────────────────────────────────────────
+const B = {
+  darkTeal:    "#053436",
+  darkGreen:   "#4F7155",
+  midGreen:    "#84AA78",
+  lightGreen:  "#B2D9A3",
+  lightTeal:   "#7A9899",
+  seafoam:     "#AEC2C3",
+  lightSeafoam:"#D4DFDF",
+  lightGrey:   "#E7E9EA",
+  nearBlack:   "#231F20",
 };
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const S = {
-  app:{ minHeight:"100vh", background:"#f1f5f9", fontFamily:"'DM Sans','Helvetica Neue',sans-serif", color:"#111827" },
-  header:{ background:"#0f172a", padding:"0 28px", display:"flex", alignItems:"center", justifyContent:"space-between", height:54 },
+  app:{ minHeight:"100vh", background:B.lightGrey,
+    fontFamily:"'DM Sans','Helvetica Neue',sans-serif", color:B.nearBlack },
+  header:{ background:B.darkTeal, padding:"0 28px", display:"flex",
+    alignItems:"center", justifyContent:"space-between", height:58,
+    borderBottom:`3px solid ${B.midGreen}` },
   main:{ maxWidth:1380, margin:"0 auto", padding:"22px 18px" },
-  card:{ background:"#fff", borderRadius:10, border:"1px solid #e2e8f0", padding:"18px 20px", marginBottom:16 },
-  cardTitle:{ fontSize:11, fontWeight:700, color:"#64748b", marginBottom:12, letterSpacing:"0.06em", textTransform:"uppercase" },
+  card:{ background:"#fff", borderRadius:8, border:`1px solid ${B.lightSeafoam}`,
+    padding:"18px 20px", marginBottom:16 },
+  cardTitle:{ fontSize:10.5, fontWeight:600, color:B.lightTeal, marginBottom:12,
+    letterSpacing:"0.1em", textTransform:"uppercase",
+    fontFamily:"'Barlow Condensed','Helvetica Neue',sans-serif" },
   filterGrid:{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:12 },
-  btnPrimary:{ background:"#2563eb", color:"#fff", border:"none", padding:"9px 22px", borderRadius:6, fontSize:13, fontWeight:600, cursor:"pointer" },
-  btnSecondary:{ background:"transparent", color:"#64748b", border:"1px solid #cbd5e1", padding:"9px 16px", borderRadius:6, fontSize:13, cursor:"pointer" },
-  btnExport:{ background:"transparent", color:"#2563eb", border:"1px solid #bfdbfe", padding:"7px 14px", borderRadius:6, fontSize:12, fontWeight:600, cursor:"pointer" },
-  tab:(a) => ({ padding:"7px 16px", borderRadius:6, fontSize:13, fontWeight:500, cursor:"pointer", border:"none",
-    background:a?"#fff":"transparent", color:a?"#111827":"#64748b", boxShadow:a?"0 1px 3px rgba(0,0,0,0.08)":"none" }),
-  tabWrap:{ display:"flex", gap:2, background:"#f1f5f9", padding:4, borderRadius:8, width:"fit-content" },
+  btnPrimary:{ background:B.darkGreen, color:"#fff", border:"none",
+    padding:"9px 22px", borderRadius:6, fontSize:13, fontWeight:600, cursor:"pointer" },
+  btnSecondary:{ background:"transparent", color:B.lightTeal,
+    border:`1px solid ${B.seafoam}`, padding:"9px 16px", borderRadius:6, fontSize:13, cursor:"pointer" },
+  btnExport:{ background:"transparent", color:B.darkGreen,
+    border:`1px solid ${B.seafoam}`, padding:"7px 14px", borderRadius:6,
+    fontSize:12, fontWeight:600, cursor:"pointer" },
+  tab:(a) => ({ padding:"7px 16px", borderRadius:6, fontSize:13, fontWeight:500,
+    cursor:"pointer", border:"none",
+    background:a?"#fff":"transparent",
+    color:a?B.darkTeal:B.lightTeal,
+    boxShadow:a?"0 1px 4px rgba(5,52,54,0.12)":"none" }),
+  tabWrap:{ display:"flex", gap:2, background:B.lightSeafoam,
+    padding:4, borderRadius:8, width:"fit-content" },
   table:{ width:"100%", borderCollapse:"collapse", fontSize:12.5 },
-  th:{ padding:"9px 11px", textAlign:"left", background:"#f8fafc", borderBottom:"1px solid #e2e8f0",
-    fontSize:10.5, fontWeight:700, color:"#64748b", letterSpacing:"0.05em", textTransform:"uppercase", whiteSpace:"nowrap" },
-  td:{ padding:"8px 11px", borderBottom:"1px solid #f1f5f9", color:"#374151", verticalAlign:"middle" },
-  tdNum:{ padding:"8px 11px", borderBottom:"1px solid #f1f5f9", textAlign:"right",
-    fontVariantNumeric:"tabular-nums", fontFamily:"monospace", fontSize:12, color:"#374151", verticalAlign:"middle" },
-  tdMuted:{ padding:"8px 11px", borderBottom:"1px solid #f1f5f9", color:"#94a3b8", fontSize:12, verticalAlign:"middle" },
+  th:{ padding:"9px 11px", textAlign:"left", background:"#f0f4f2",
+    borderBottom:`1px solid ${B.lightSeafoam}`,
+    fontSize:10, fontWeight:600, color:B.lightTeal,
+    letterSpacing:"0.08em", textTransform:"uppercase", whiteSpace:"nowrap",
+    fontFamily:"'Barlow Condensed','Helvetica Neue',sans-serif" },
+  td:{ padding:"8px 11px", borderBottom:`1px solid ${B.lightGrey}`,
+    color:B.nearBlack, verticalAlign:"middle" },
+  tdNum:{ padding:"8px 11px", borderBottom:`1px solid ${B.lightGrey}`,
+    textAlign:"right", fontVariantNumeric:"tabular-nums",
+    fontFamily:"monospace", fontSize:12, color:B.nearBlack, verticalAlign:"middle" },
+  tdMuted:{ padding:"8px 11px", borderBottom:`1px solid ${B.lightGrey}`,
+    color:B.lightTeal, fontSize:12, verticalAlign:"middle" },
   statGrid:{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:16 },
-  stat:{ background:"#fff", border:"1px solid #e2e8f0", borderRadius:10, padding:"13px 16px" },
-  statVal:{ fontSize:23, fontWeight:700, color:"#0f172a", lineHeight:1 },
-  statLabel:{ fontSize:10.5, color:"#64748b", marginTop:5, fontWeight:600, textTransform:"uppercase", letterSpacing:"0.05em" },
-  metricBtn:(a)=>({ padding:"5px 11px", borderRadius:5, fontSize:12, fontWeight:500, cursor:"pointer",
-    border:"1px solid", borderColor:a?"#2563eb":"#e2e8f0", background:a?"#eff6ff":"transparent", color:a?"#2563eb":"#64748b" }),
+  stat:{ background:"#fff", border:`1px solid ${B.lightSeafoam}`,
+    borderTop:`3px solid ${B.midGreen}`, borderRadius:8, padding:"13px 16px" },
+  statVal:{ fontSize:23, fontWeight:700, color:B.darkTeal, lineHeight:1 },
+  statLabel:{ fontSize:10, color:B.lightTeal, marginTop:5, fontWeight:600,
+    textTransform:"uppercase", letterSpacing:"0.08em",
+    fontFamily:"'Barlow Condensed','Helvetica Neue',sans-serif" },
+  metricBtn:(a)=>({ padding:"6px 13px", borderRadius:5, fontSize:12, fontWeight:500,
+    cursor:"pointer", border:"1px solid",
+    borderColor:a?B.darkGreen:B.seafoam,
+    background:a?B.darkGreen:"transparent",
+    color:a?"#fff":B.lightTeal }),
   econColour:(val, all) => {
     if (val == null) return "#d1d5db";
     const max = Math.max(...all.filter(v=>v!=null));
-    return val > max*0.66 ? "#dc2626" : val > max*0.33 ? "#d97706" : "#059669";
+    return val > max*0.66 ? "#b91c1c" : val > max*0.33 ? "#b45309" : "#2d7a4f";
   },
 };
 
@@ -434,9 +485,9 @@ function ProductTable({ prods, showCountry=true }) {
       : "Fares shown in local currency. Use USD (PPP) metric for cross-country comparison.";
   return (
     <div style={{ ...S.card, padding:0, overflow:"hidden" }}>
-      <div style={{padding:"8px 14px",background:"#f8fafc",borderBottom:"1px solid #e2e8f0",
+      <div style={{padding:"8px 14px",background:"#f4f7f4",borderBottom:"1px solid #e2e8f0",
         fontSize:12,color:"#64748b",display:"flex",alignItems:"center",gap:6}}>
-        <span style={{color:"#94a3b8"}}>ⓘ</span> {currencyNote}
+        <span style={{color:"#7A9899"}}>ⓘ</span> {currencyNote}
       </div>
       <div style={{ overflowX:"auto" }}>
         <table style={S.table}>
@@ -464,7 +515,7 @@ function ProductTable({ prods, showCountry=true }) {
                 <React.Fragment key={p.product_id}>
                   <tr
                     style={{ opacity: p.product_discontinued ? 0.65 : 1 }}
-                    onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+                    onMouseEnter={e=>e.currentTarget.style.background="#f4f7f4"}
                     onMouseLeave={e=>e.currentTarget.style.background=""}>
                     {showCountry && <td style={S.td}>{p.country}</td>}
                     <td style={S.td}>{p.city}</td>
@@ -486,7 +537,7 @@ function ProductTable({ prods, showCountry=true }) {
                         <td key={y} style={S.tdNum}>
                           {obs?.fare != null
                             ? <span title={obs.comments||""}>{obs.fare < 1000 ? obs.fare.toFixed(2) : obs.fare.toLocaleString()}</span>
-                            : <span style={{color:"#e2e8f0"}}>—</span>}
+                            : <span style={{color:"#D4DFDF"}}>—</span>}
                           {obs && !obs.is_active && <InactiveBadge/>}
                         </td>
                       );
@@ -495,8 +546,8 @@ function ProductTable({ prods, showCountry=true }) {
                   </tr>
                   {PRODUCT_NOTES[p.product_id] && (
                     <tr>
-                      <td colSpan={99} style={{padding:"5px 14px 8px",background:"#fffbeb",
-                        borderBottom:"1px solid #fde68a",fontSize:11.5,color:"#78350f"}}>
+                      <td colSpan={99} style={{padding:"5px 14px 8px",background:"#fefce8",
+                        borderBottom:"1px solid #fde68a",fontSize:11.5,color:"#92400e"}}>
                         <span style={{fontWeight:700,marginRight:6}}>ⓘ Note:</span>
                         {PRODUCT_NOTES[p.product_id]}
                       </td>
@@ -509,7 +560,7 @@ function ProductTable({ prods, showCountry=true }) {
         </table>
       </div>
       {prods.length >= 500 && (
-        <div style={{padding:"9px 14px",background:"#fffbeb",borderTop:"1px solid #fde68a",fontSize:12,color:"#92400e"}}>
+        <div style={{padding:"9px 14px",background:"#fefce8",borderTop:"1px solid #fde68a",fontSize:12,color:"#92400e"}}>
           Showing first 500 results — refine your filters for a more specific view.
         </div>
       )}
@@ -525,7 +576,7 @@ function AffordabilityTable({ prods }) {
   const allAvg = prods.map(p=>p.observations[year]?.avg_wage_mins).filter(Boolean);
   return (
     <div style={{ ...S.card, padding:0, overflow:"hidden" }}>
-      <div style={{padding:"12px 16px 10px",borderBottom:"1px solid #f1f5f9",fontSize:12,color:"#64748b"}}>
+      <div style={{padding:"12px 16px 10px",borderBottom:`1px solid ${B.lightSeafoam}`,fontSize:12,color:"#7A9899"}}>
         Showing most recent year with data. Min/Avg wage = minutes of work to afford fare.
         Colour: <span style={{color:"#059669",fontWeight:600}}>green</span> = affordable,
         <span style={{color:"#d97706",fontWeight:600}}> amber</span> = moderate,
@@ -544,7 +595,7 @@ function AffordabilityTable({ prods }) {
               const obs = p.observations[year] || {};
               return (
                 <tr key={p.product_id}
-                  onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+                  onMouseEnter={e=>e.currentTarget.style.background="#f4f7f4"}
                   onMouseLeave={e=>e.currentTarget.style.background=""}>
                   <td style={S.td}>{p.country}</td>
                   <td style={S.td}>{p.city}</td>
@@ -744,9 +795,9 @@ export default function FaresPlatform() {
       <div style={S.header}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <N2Logo height={28}/>
-          <span style={{color:"#475569",fontSize:11,marginLeft:2}}>/ Global Fares Platform</span>
+          <span style={{color:"#84AA78",fontSize:11,marginLeft:2,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.06em",fontWeight:500}}>/ Global Fares Platform</span>
         </div>
-        <div style={{color:"#475569",fontSize:12}}>
+        <div style={{color:"#84AA78",fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:"0.04em"}}>
           {products.length>0 && `${products.length.toLocaleString()} products · ${rawResults.length.toLocaleString()} observations`}
         </div>
       </div>
@@ -806,12 +857,12 @@ export default function FaresPlatform() {
             </div>
 
             {error && (
-              <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,
+              <div style={{background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:8,
                 padding:"12px 16px",marginBottom:14,color:"#dc2626",fontSize:13}}>{error}</div>
             )}
 
             {searched && !loading && products.length===0 && (
-              <div style={{...S.card,textAlign:"center",padding:"40px 0",color:"#94a3b8"}}>
+              <div style={{...S.card,textAlign:"center",padding:"40px 0",color:"#7A9899"}}>
                 <div style={{fontSize:28,marginBottom:10}}>🔍</div>
                 <div style={{fontWeight:600,color:"#374151"}}>No results found</div>
                 <div style={{fontSize:13,marginTop:4}}>Try broadening your filters</div>
@@ -838,7 +889,7 @@ export default function FaresPlatform() {
                     ))}
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{fontSize:11,color:"#94a3b8"}}>
+                    <span style={{fontSize:11,color:"#7A9899"}}>
                       <span style={{background:"#fef3c7",color:"#92400e",padding:"1px 5px",borderRadius:3,fontSize:10,fontWeight:700}}>DISCONTINUED</span>
                       {" "}= fare product no longer offered
                     </span>
@@ -868,10 +919,10 @@ export default function FaresPlatform() {
             {!searched && (
               <div style={{...S.card,textAlign:"center",padding:"52px 0"}}>
                 <N2LogoDark height={36}/>
-                <div style={{fontWeight:700,fontSize:17,color:"#0f172a",marginTop:14,marginBottom:8}}>
+                <div style={{fontWeight:700,fontSize:17,color:"#053436",marginTop:14,marginBottom:8}}>
                   NineSquared Global Fares Database
                 </div>
-                <div style={{color:"#64748b",fontSize:13,maxWidth:480,margin:"0 auto",lineHeight:1.8}}>
+                <div style={{color:"#7A9899",fontSize:13,maxWidth:480,margin:"0 auto",lineHeight:1.8}}>
                   8,652 fare products across 47 countries and 115 cities, with 8 years of pricing
                   history (2018–19 to 2025–26), PPP-adjusted pricing, and wage affordability metrics.
                   <br/>Use the filters above — select multiple values in any filter.
@@ -933,9 +984,9 @@ export default function FaresPlatform() {
                         style={{
                           padding:"8px 16px", borderRadius:6, fontSize:13, fontWeight:600,
                           cursor:"pointer", border:"2px solid",
-                          borderColor: trendMetric===k ? "#2563eb" : "#e2e8f0",
-                          background: trendMetric===k ? "#2563eb" : "#fff",
-                          color: trendMetric===k ? "#fff" : "#64748b",
+                          borderColor: trendMetric===k ? "#053436" : "#AEC2C3",
+                          background: trendMetric===k ? "#053436" : "#fff",
+                          color: trendMetric===k ? "#fff" : "#7A9899",
                           transition:"all 0.1s",
                         }}>{l}</button>
                     ))}
@@ -974,7 +1025,7 @@ export default function FaresPlatform() {
                   });
                   return (
                     <div style={{...S.card, padding:0, overflow:"hidden"}}>
-                      <div style={{padding:"12px 16px",borderBottom:"1px solid #f1f5f9",fontSize:12,color:"#64748b"}}>
+                      <div style={{padding:"12px 16px",borderBottom:`1px solid ${B.lightSeafoam}`,fontSize:12,color:"#7A9899"}}>
                         Showing <strong>{({fare:"local fare",ppp:"USD (PPP)",min_wage:"minimum wage minutes",avg_wage:"average wage minutes"})[trendMetric]}</strong> by year.
                         {trendMetric!=="fare" && " Colour: green = most affordable, red = least affordable within each year."}
                       </div>
@@ -1000,7 +1051,7 @@ export default function FaresPlatform() {
                               return (
                                 <tr key={p.product_id}
                                   style={{opacity:p.product_discontinued?0.65:1}}
-                                  onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+                                  onMouseEnter={e=>e.currentTarget.style.background="#f4f7f4"}
                                   onMouseLeave={e=>e.currentTarget.style.background=""}>
                                   <td style={{...S.td,fontWeight:600}}>{p.city}</td>
                                   <td style={S.tdMuted}>{p.transit_system}</td>
@@ -1016,7 +1067,7 @@ export default function FaresPlatform() {
                                     const colour = trendMetric!=="fare" ? S.econColour(v, yearVals[y]) : "#374151";
                                     return (
                                       <td key={y} style={{...S.tdNum, color:colour, fontWeight: v!=null&&trendMetric!=="fare"?600:400}}>
-                                        {v!=null ? metricFmt(v) : <span style={{color:"#e2e8f0"}}>—</span>}
+                                        {v!=null ? metricFmt(v) : <span style={{color:"#D4DFDF"}}>—</span>}
                                       </td>
                                     );
                                   })}
@@ -1028,7 +1079,7 @@ export default function FaresPlatform() {
                         </table>
                       </div>
                       {compareProducts.length>=500&&(
-                        <div style={{padding:"9px 14px",background:"#fffbeb",borderTop:"1px solid #fde68a",fontSize:12,color:"#92400e"}}>
+                        <div style={{padding:"9px 14px",background:"#fefce8",borderTop:"1px solid #fde68a",fontSize:12,color:"#92400e"}}>
                           Showing first 500 results — refine your filters for a more specific view.
                         </div>
                       )}
@@ -1057,7 +1108,7 @@ export default function FaresPlatform() {
             )}
 
             {!compareProducts.length && !compareLoading && (
-              <div style={{...S.card,textAlign:"center",padding:"44px 0",color:"#94a3b8"}}>
+              <div style={{...S.card,textAlign:"center",padding:"44px 0",color:"#7A9899"}}>
                 <div style={{fontSize:28,marginBottom:10}}>🏙️</div>
                 <div style={{fontWeight:600,color:"#374151"}}>Select two or three cities above</div>
                 <div style={{fontSize:13,marginTop:4}}>
@@ -1242,10 +1293,10 @@ export default function FaresPlatform() {
 // ── About page styles ─────────────────────────────────────────────────────────
 const aboutStyle = {
   p: { fontSize:14, color:"#374151", lineHeight:1.8, marginBottom:14, marginTop:0 },
-  infoBox: { background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:8,
-    padding:"12px 16px", fontSize:13, color:"#1e40af", lineHeight:1.7, marginTop:16 },
-  metricCard: { borderLeft:"3px solid #2563eb", paddingLeft:14, marginBottom:18 },
-  metricTitle: { fontSize:13, fontWeight:700, color:"#0f172a", marginBottom:6 },
+  infoBox: { background:"#f0f5f0", border:"1px solid #bfdbfe", borderRadius:8,
+    padding:"12px 16px", fontSize:13, color:"#053436", lineHeight:1.7, marginTop:16 },
+  metricCard: { borderLeft:"3px solid #84AA78", paddingLeft:14, marginBottom:18 },
+  metricTitle: { fontSize:13, fontWeight:700, color:"#053436", marginBottom:6 },
   metricDesc: { fontSize:13, color:"#4b5563", lineHeight:1.75, margin:0 },
   sectionHead: { fontSize:12, fontWeight:700, color:"#64748b", textTransform:"uppercase",
     letterSpacing:"0.06em", marginBottom:12, marginTop:20 },
