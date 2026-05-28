@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+Import React, { useState, useEffect, useCallback } from "react";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://dlvjrgubjpslhvwdvtfr.supabase.co/rest/v1";
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
@@ -287,173 +287,6 @@ function TrendChart({ products, metric }) {
             <span style={{ maxWidth:260, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.label}</span>
           </div>
         ))}
-
-        {/* ═══ ABOUT THE DATA ═══ */}
-        {mainTab==="about" && (
-          <div style={{maxWidth:820}}>
-            <div style={{...S.tabWrap, marginBottom:20}}>
-              {[
-                ["methodology","Methodology"],
-                ["affordability","Affordability metrics"],
-                ["collection","Data collection"],
-                ["coverage","Coverage & limitations"],
-              ].map(([k,l])=>(
-                <button key={k} style={S.tab(aboutSection===k)} onClick={()=>setAboutSection(k)}>{l}</button>
-              ))}
-            </div>
-
-            {aboutSection==="methodology" && (
-              <div style={S.card}>
-                <div style={S.cardTitle}>How the data is collected and structured</div>
-                <p style={aboutStyle.p}>
-                  The NineSquared Global Fares Database is an annual dataset tracking public transport fare products
-                  across 47 countries and 116 cities. Data is collected each financial year (July to June,
-                  following the Australian convention) from official transit authority sources, published fare schedules,
-                  and government transport reports.
-                </p>
-                <p style={aboutStyle.p}>
-                  Each <strong>fare product</strong> is a unique combination of attributes: city, transit system, fare
-                  system (e.g. zonal or flat), ticket category (e.g. single, pass, cap), passenger type
-                  (e.g. adult, concession), zone, peak/off-peak status, and payment media. A stable{" "}
-                  <strong>product ID</strong> allows the same fare product to be tracked across all eight years of data
-                  (2018–19 to 2025–26), enabling genuine time-series comparison.
-                </p>
-                <p style={aboutStyle.p}>
-                  Fares are recorded in <strong>local currency</strong> as published by the transit authority.
-                  To enable cross-country comparison, each fare is also expressed in purchasing power parity (PPP)
-                  terms and as a proportion of local wage rates — see the Affordability Metrics section for details.
-                </p>
-                <div style={aboutStyle.infoBox}>
-                  <strong>Financial year convention:</strong> A fare recorded as "2024–25" was the published fare
-                  in effect during the period 1 July 2024 to 30 June 2025. Data is collected and updated annually
-                  around the end of June each year.
-                </div>
-              </div>
-            )}
-
-            {aboutSection==="affordability" && (
-              <div style={S.card}>
-                <div style={S.cardTitle}>Understanding the affordability metrics</div>
-                <p style={aboutStyle.p}>
-                  Raw fare prices in local currency are not directly comparable across countries — a fare of $3.50
-                  means something very different in Sydney than in Mumbai. NineSquared expresses every fare using
-                  three additional metrics that allow meaningful cross-city comparison.
-                </p>
-                <div style={aboutStyle.metricCard}>
-                  <div style={aboutStyle.metricTitle}>Local fare (local currency)</div>
-                  <p style={aboutStyle.metricDesc}>
-                    The published fare as recorded in the local currency of the country. Use this for
-                    within-country comparisons or to understand absolute fare levels. <em>Not suitable
-                    for direct comparison across countries with different currencies.</em>
-                  </p>
-                </div>
-                <div style={aboutStyle.metricCard}>
-                  <div style={aboutStyle.metricTitle}>USD (PPP) — Purchasing Power Parity</div>
-                  <p style={aboutStyle.metricDesc}>
-                    The fare expressed in US dollars, adjusted for purchasing power parity. PPP adjustment
-                    accounts for differences in price levels between countries, so that a "dollar" represents
-                    the same real purchasing power in each city. PPP rates are sourced from the OECD and
-                    World Bank. This is the <strong>recommended metric for cross-country fare comparisons</strong>.
-                  </p>
-                </div>
-                <div style={aboutStyle.metricCard}>
-                  <div style={aboutStyle.metricTitle}>Minimum wage minutes</div>
-                  <p style={aboutStyle.metricDesc}>
-                    How many minutes of work at the statutory minimum wage are required to earn enough to
-                    pay for this fare. This metric contextualises affordability for lower-income workers
-                    and is particularly useful for assessing equity implications of fare levels.
-                  </p>
-                </div>
-                <div style={aboutStyle.metricCard}>
-                  <div style={aboutStyle.metricTitle}>Average wage minutes</div>
-                  <p style={aboutStyle.metricDesc}>
-                    How many minutes of work at the mean wage are required to pay for this fare. This
-                    provides a complementary affordability measure for the broader working population.
-                    Average wage data is sourced from the OECD and national statistical agencies.
-                  </p>
-                </div>
-                <div style={aboutStyle.infoBox}>
-                  <strong>Colour coding in affordability views:</strong> Green indicates a fare that is
-                  relatively affordable compared to others in the same result set; amber is moderate; red
-                  indicates the fare is relatively expensive. Colours are relative to the current result
-                  set — they are not absolute benchmarks.
-                </div>
-              </div>
-            )}
-
-            {aboutSection==="collection" && (
-              <div style={S.card}>
-                <div style={S.cardTitle}>Data collection process</div>
-                <p style={aboutStyle.p}>
-                  Fare data is collected annually by the NineSquared research team from primary sources:
-                  official transit authority websites, published fare schedules, and government transport
-                  reports. Where fares are published in multiple locations, the most authoritative source
-                  (typically the transit authority's own published schedule) is used.
-                </p>
-                <p style={aboutStyle.p}>
-                  Data collection occurs around the end of each financial year (June), capturing the fare
-                  structure in effect at that time. Mid-year fare changes are not typically captured unless
-                  they represent a significant restructure.
-                </p>
-                <p style={aboutStyle.p}>
-                  <strong>Unified passenger types</strong> and <strong>unified ticket types</strong> are
-                  NineSquared classifications applied to harmonise the wide variety of naming conventions
-                  used by different transit authorities. For example, what one system calls "Concession"
-                  another may call "Pensioner", "Senior", or "Reduced" — these are mapped to a common
-                  classification to enable cross-system comparison.
-                </p>
-                <p style={aboutStyle.p}>
-                  <strong>Report fares</strong> are the subset of fare products selected by NineSquared
-                  as representative benchmarks for each city — typically the most commonly used adult
-                  single fare, concession fare, and pass products. These are used in the annual
-                  NineSquared Fares Benchmarking Report.
-                </p>
-                <div style={aboutStyle.infoBox}>
-                  <strong>Questions or corrections?</strong> If you identify a discrepancy or have access
-                  to more current fare data, please contact the NineSquared team. We welcome feedback from
-                  transport authorities with direct knowledge of their own systems.
-                </div>
-              </div>
-            )}
-
-            {aboutSection==="coverage" && (
-              <div style={S.card}>
-                <div style={S.cardTitle}>Coverage & known limitations</div>
-                <p style={aboutStyle.p}>
-                  The database currently covers <strong>47 countries, 116 cities, and approximately 140 transit
-                  systems</strong>, with data from 2018–19 through 2025–26. Coverage is strongest in OECD member
-                  countries; some lower-income countries have partial coverage due to limited availability of
-                  published fare schedules in accessible formats.
-                </p>
-                <div style={aboutStyle.sectionHead}>Known limitations</div>
-                <ul style={aboutStyle.ul}>
-                  <li style={aboutStyle.li}>
-                    <strong>Local currency:</strong> Fares are recorded in the local currency at the time of
-                    collection. Use the PPP metric for cross-country comparisons rather than converting local
-                    fares at spot rates.
-                  </li>
-                  <li style={aboutStyle.li}>
-                    <strong>Payment media combinations:</strong> Some transit systems price differently by
-                    payment method (e.g. cash vs. smartcard). Where this occurs, separate fare products are
-                    recorded. Filtering by payment media returns all products that include that payment type.
-                  </li>
-                  <li style={aboutStyle.li}>
-                    <strong>Discontinued products:</strong> Fare products no longer offered are retained with
-                    historical pricing and marked as discontinued. They can be excluded using the filter.
-                  </li>
-                  <li style={aboutStyle.li}>
-                    <strong>PPP and wage data:</strong> PPP conversion factors and wage data are updated
-                    annually but may lag the most recent OECD or World Bank releases by one year.
-                  </li>
-                  <li style={aboutStyle.li}>
-                    <strong>Mid-year changes:</strong> Fares changed outside the annual June collection
-                    window may not be captured until the following year's data update.
-                  </li>
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -1233,6 +1066,173 @@ export default function FaresPlatform() {
               </div>
             )}
           </>
+        )}
+
+        {/* ═══ ABOUT THE DATA ═══ */}
+        {mainTab==="about" && (
+          <div style={{maxWidth:820}}>
+            <div style={{...S.tabWrap, marginBottom:20}}>
+              {[
+                ["methodology","Methodology"],
+                ["affordability","Affordability metrics"],
+                ["collection","Data collection"],
+                ["coverage","Coverage & limitations"],
+              ].map(([k,l])=>(
+                <button key={k} style={S.tab(aboutSection===k)} onClick={()=>setAboutSection(k)}>{l}</button>
+              ))}
+            </div>
+
+            {aboutSection==="methodology" && (
+              <div style={S.card}>
+                <div style={S.cardTitle}>How the data is collected and structured</div>
+                <p style={aboutStyle.p}>
+                  The NineSquared Global Fares Database is an annual dataset tracking public transport fare products
+                  across 47 countries and 116 cities. Data is collected each financial year (July to June,
+                  following the Australian convention) from official transit authority sources, published fare schedules,
+                  and government transport reports.
+                </p>
+                <p style={aboutStyle.p}>
+                  Each <strong>fare product</strong> is a unique combination of attributes: city, transit system, fare
+                  system (e.g. zonal or flat), ticket category (e.g. single, pass, cap), passenger type
+                  (e.g. adult, concession), zone, peak/off-peak status, and payment media. A stable{" "}
+                  <strong>product ID</strong> allows the same fare product to be tracked across all eight years of data
+                  (2018–19 to 2025–26), enabling genuine time-series comparison.
+                </p>
+                <p style={aboutStyle.p}>
+                  Fares are recorded in <strong>local currency</strong> as published by the transit authority.
+                  To enable cross-country comparison, each fare is also expressed in purchasing power parity (PPP)
+                  terms and as a proportion of local wage rates — see the Affordability Metrics section for details.
+                </p>
+                <div style={aboutStyle.infoBox}>
+                  <strong>Financial year convention:</strong> A fare recorded as "2024–25" was the published fare
+                  in effect during the period 1 July 2024 to 30 June 2025. Data is collected and updated annually
+                  around the end of June each year.
+                </div>
+              </div>
+            )}
+
+            {aboutSection==="affordability" && (
+              <div style={S.card}>
+                <div style={S.cardTitle}>Understanding the affordability metrics</div>
+                <p style={aboutStyle.p}>
+                  Raw fare prices in local currency are not directly comparable across countries — a fare of $3.50
+                  means something very different in Sydney than in Mumbai. NineSquared expresses every fare using
+                  three additional metrics that allow meaningful cross-city comparison.
+                </p>
+                <div style={aboutStyle.metricCard}>
+                  <div style={aboutStyle.metricTitle}>Local fare (local currency)</div>
+                  <p style={aboutStyle.metricDesc}>
+                    The published fare as recorded in the local currency of the country. Use this for
+                    within-country comparisons or to understand absolute fare levels. <em>Not suitable
+                    for direct comparison across countries with different currencies.</em>
+                  </p>
+                </div>
+                <div style={aboutStyle.metricCard}>
+                  <div style={aboutStyle.metricTitle}>USD (PPP) — Purchasing Power Parity</div>
+                  <p style={aboutStyle.metricDesc}>
+                    The fare expressed in US dollars, adjusted for purchasing power parity. PPP adjustment
+                    accounts for differences in price levels between countries, so that a "dollar" represents
+                    the same real purchasing power in each city. PPP rates are sourced from the OECD and
+                    World Bank. This is the <strong>recommended metric for cross-country fare comparisons</strong>.
+                  </p>
+                </div>
+                <div style={aboutStyle.metricCard}>
+                  <div style={aboutStyle.metricTitle}>Minimum wage minutes</div>
+                  <p style={aboutStyle.metricDesc}>
+                    How many minutes of work at the statutory minimum wage are required to earn enough to
+                    pay for this fare. This metric contextualises affordability for lower-income workers
+                    and is particularly useful for assessing equity implications of fare levels.
+                  </p>
+                </div>
+                <div style={aboutStyle.metricCard}>
+                  <div style={aboutStyle.metricTitle}>Average wage minutes</div>
+                  <p style={aboutStyle.metricDesc}>
+                    How many minutes of work at the mean wage are required to pay for this fare. This
+                    provides a complementary affordability measure for the broader working population.
+                    Average wage data is sourced from the OECD and national statistical agencies.
+                  </p>
+                </div>
+                <div style={aboutStyle.infoBox}>
+                  <strong>Colour coding in affordability views:</strong> Green indicates a fare that is
+                  relatively affordable compared to others in the same result set; amber is moderate; red
+                  indicates the fare is relatively expensive. Colours are relative to the current result
+                  set — they are not absolute benchmarks.
+                </div>
+              </div>
+            )}
+
+            {aboutSection==="collection" && (
+              <div style={S.card}>
+                <div style={S.cardTitle}>Data collection process</div>
+                <p style={aboutStyle.p}>
+                  Fare data is collected annually by the NineSquared research team from primary sources:
+                  official transit authority websites, published fare schedules, and government transport
+                  reports. Where fares are published in multiple locations, the most authoritative source
+                  (typically the transit authority's own published schedule) is used.
+                </p>
+                <p style={aboutStyle.p}>
+                  Data collection occurs around the end of each financial year (June), capturing the fare
+                  structure in effect at that time. Mid-year fare changes are not typically captured unless
+                  they represent a significant restructure.
+                </p>
+                <p style={aboutStyle.p}>
+                  <strong>Unified passenger types</strong> and <strong>unified ticket types</strong> are
+                  NineSquared classifications applied to harmonise the wide variety of naming conventions
+                  used by different transit authorities. For example, what one system calls "Concession"
+                  another may call "Pensioner", "Senior", or "Reduced" — these are mapped to a common
+                  classification to enable cross-system comparison.
+                </p>
+                <p style={aboutStyle.p}>
+                  <strong>Report fares</strong> are the subset of fare products selected by NineSquared
+                  as representative benchmarks for each city — typically the most commonly used adult
+                  single fare, concession fare, and pass products. These are used in the annual
+                  NineSquared Fares Benchmarking Report.
+                </p>
+                <div style={aboutStyle.infoBox}>
+                  <strong>Questions or corrections?</strong> If you identify a discrepancy or have access
+                  to more current fare data, please contact the NineSquared team. We welcome feedback from
+                  transport authorities with direct knowledge of their own systems.
+                </div>
+              </div>
+            )}
+
+            {aboutSection==="coverage" && (
+              <div style={S.card}>
+                <div style={S.cardTitle}>Coverage & known limitations</div>
+                <p style={aboutStyle.p}>
+                  The database currently covers <strong>47 countries, 116 cities, and approximately 140 transit
+                  systems</strong>, with data from 2018–19 through 2025–26. Coverage is strongest in OECD member
+                  countries; some lower-income countries have partial coverage due to limited availability of
+                  published fare schedules in accessible formats.
+                </p>
+                <div style={aboutStyle.sectionHead}>Known limitations</div>
+                <ul style={aboutStyle.ul}>
+                  <li style={aboutStyle.li}>
+                    <strong>Local currency:</strong> Fares are recorded in the local currency at the time of
+                    collection. Use the PPP metric for cross-country comparisons rather than converting local
+                    fares at spot rates.
+                  </li>
+                  <li style={aboutStyle.li}>
+                    <strong>Payment media combinations:</strong> Some transit systems price differently by
+                    payment method (e.g. cash vs. smartcard). Where this occurs, separate fare products are
+                    recorded. Filtering by payment media returns all products that include that payment type.
+                  </li>
+                  <li style={aboutStyle.li}>
+                    <strong>Discontinued products:</strong> Fare products no longer offered are retained with
+                    historical pricing and marked as discontinued. They can be excluded using the filter.
+                  </li>
+                  <li style={aboutStyle.li}>
+                    <strong>PPP and wage data:</strong> PPP conversion factors and wage data are updated
+                    annually but may lag the most recent OECD or World Bank releases by one year.
+                  </li>
+                  <li style={aboutStyle.li}>
+                    <strong>Mid-year changes:</strong> Fares changed outside the annual June collection
+                    window may not be captured until the following year's data update.
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
