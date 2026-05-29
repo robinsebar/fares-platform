@@ -744,9 +744,10 @@ export default function FaresPlatform() {
   const [paymentMediaOptions, setPaymentMediaOptions] = useState([]);
   const [modeOptions, setModeOptions] = useState([]);
 
+  const DEFAULT_YEARS = YEARS.slice(-5); // last 5 financial years by default
   const [filters, setFilters] = useState({
     country:[], city:[], unified_passenger_type:[], ticket_category:[],
-    peak_period:[], payment_media:[], financial_year:[], mode:[],
+    peak_period:[], payment_media:[], financial_year:DEFAULT_YEARS, mode:[],
     is_active_only:false, report_fare_only:false, exclude_discontinued:false,
   });
 
@@ -943,13 +944,12 @@ export default function FaresPlatform() {
                   selected={filters.peak_period} onChange={v=>setF("peak_period",v)}/>
                 <MultiSelect label="Payment media" options={paymentMediaOptions}
                   selected={filters.payment_media} onChange={v=>setF("payment_media",v)}/>
-                <MultiSelect label="Financial year" options={YEARS.map(y=>y)}
+                <MultiSelect label="Financial year (last 5 default)" options={YEARS.map(y=>y)}
                   selected={filters.financial_year} onChange={v=>setF("financial_year",v)}/>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:20,marginTop:14,flexWrap:"wrap"}}>
                 {[
-                  ["is_active_only","Active fares only"],
-                  ["report_fare_only","Report fares only"],
+                  ["report_fare_only","Adult single fares only"],
                   ["exclude_discontinued","Exclude discontinued products"],
                 ].map(([key,lbl])=>(
                   <label key={key} style={{display:"flex",alignItems:"center",gap:7,fontSize:13,color:"#374151",cursor:"pointer"}}>
