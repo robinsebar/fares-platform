@@ -759,6 +759,8 @@ export default function FaresPlatform() {
   const [mainTab, setMainTab]         = useState("browse");
   const [browseTab, setBrowseTab]     = useState("table");
   const [compareTab, setCompareTab]   = useState("table");
+  const [cSortCol, setCSortCol]       = useState("city");
+  const [cSortDir, setCSortDir]       = useState("asc");
   const [trendMetric, setTrendMetric] = useState("fare");
   const [aboutSection, setAboutSection] = useState("methodology");
 
@@ -1133,8 +1135,6 @@ export default function FaresPlatform() {
                     yearVals[y] = compareProducts.map(p=>p.observations[y]?.[metricKey]).filter(v=>v!=null);
                   });
 
-                  const [cSortCol, setCSortCol] = React.useState("city");
-                  const [cSortDir, setCSortDir] = React.useState("asc");
                   const handleCSort = (col) => {
                     if (cSortCol===col) setCSortDir(d=>d==="asc"?"desc":"asc");
                     else { setCSortCol(col); setCSortDir("asc"); }
