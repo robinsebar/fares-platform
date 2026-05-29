@@ -440,6 +440,7 @@ function buildParams(f, extra={}) {
   if (f.financial_year?.length) p["financial_year"] = inClause(f.financial_year);
   // Payment media uses contains search since values are comma-separated combinations
   if (f.payment_media?.length === 1) p["payment_media"] = 'ilike.*' + f.payment_media[0] + '*';
+  if (f.mode?.length) p["mode"] = inClause(f.mode);
   if (f.is_active_only) p["is_active"] = "eq.true";
   if (f.report_fare_only) p["report_fare"] = "eq.true";
   if (f.exclude_discontinued) p["product_discontinued"] = "eq.false";
@@ -454,7 +455,7 @@ function groupByProduct(rows) {
       map[r.product_id] = {
         product_id: r.product_id,
         country: r.country, city: r.city, transit_system: r.transit_system,
-        fare_system: r.fare_system, zone: r.zone,
+        fare_system: r.fare_system, zone: r.zone, mode: r.mode,
         unified_passenger_type: r.unified_passenger_type,
         unified_ticket_type: r.unified_ticket_type,
         ticket_category: r.ticket_category,
@@ -520,6 +521,7 @@ function ProductTable({ prods, showCountry=true }) {
                     {showCountry && <td style={S.td}>{p.country}</td>}
                     <td style={S.td}>{p.city}</td>
                     <td style={S.tdMuted}>{p.transit_system}</td>
+                    <td style={S.tdMuted}>{p.mode||"—"}</td>
                     <td style={S.tdMuted}>{p.fare_system||"—"}</td>
                     <td style={S.td}><CategoryBadge cat={p.ticket_category}/></td>
                     <td style={S.td}>
@@ -633,11 +635,12 @@ export default function FaresPlatform() {
   const [ticketCategories, setTicketCategories] = useState([]);
   const [peakOptions, setPeakOptions] = useState([]);
   const [paymentMediaOptions, setPaymentMediaOptions] = useState([]);
+  const [modeOptions, setModeOptions] = useState([]);
 
   const [filters, setFilters] = useState({
     country:[], city:[], unified_passenger_type:[], ticket_category:[],
-    peak_period:[], payment_media:[], financial_year:[], is_active_only:false,
-    report_fare_only:false, exclude_discontinued:false,
+    peak_period:[], payment_media:[], financial_year:[], mode:[],
+    is_active_only:false, report_fare_only:false, exclude_discontinued:false,
   });
 
   const [rawResults, setRawResults]   = useState([]);  // flat rows from API
@@ -698,6 +701,7 @@ export default function FaresPlatform() {
         }
       });
       setPaymentMediaOptions([...pmSet].sort());
+      setModeOptions([...new Set(allRows.map(d=>d.mode))].filter(Boolean).sort());
     };
     fetchAllProducts().catch(()=>{});
 
@@ -826,6 +830,8 @@ export default function FaresPlatform() {
                   selected={filters.unified_passenger_type} onChange={v=>setF("unified_passenger_type",v)}/>
                 <MultiSelect label="Ticket category" options={ticketCategories}
                   selected={filters.ticket_category} onChange={v=>setF("ticket_category",v)}/>
+                <MultiSelect label="Mode" options={modeOptions}
+                  selected={filters.mode} onChange={v=>setF("mode",v)}/>
                 <MultiSelect label="Peak / Off-peak" options={peakOptions}
                   selected={filters.peak_period} onChange={v=>setF("peak_period",v)}/>
                 <MultiSelect label="Payment media" options={paymentMediaOptions}
@@ -1034,6 +1040,7 @@ export default function FaresPlatform() {
                           <thead><tr>
                             <th style={S.th}>City</th>
                             <th style={S.th}>System</th>
+                            <th style={S.th}>Mode</th>
                             <th style={S.th}>Category</th>
                             <th style={S.th}>Ticket type</th>
                             <th style={S.th}>Passenger</th>
@@ -1055,6 +1062,7 @@ export default function FaresPlatform() {
                                   onMouseLeave={e=>e.currentTarget.style.background=""}>
                                   <td style={{...S.td,fontWeight:600}}>{p.city}</td>
                                   <td style={S.tdMuted}>{p.transit_system}</td>
+                                  <td style={S.tdMuted}>{p.mode||"—"}</td>
                                   <td style={S.td}><CategoryBadge cat={p.ticket_category}/></td>
                                   <td style={S.td}>
                                     {p.unified_ticket_type}
