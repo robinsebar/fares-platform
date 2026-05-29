@@ -409,7 +409,7 @@ const S = {
     fontFamily:"monospace", fontSize:12, color:B.nearBlack, verticalAlign:"middle" },
   tdMuted:{ padding:"8px 11px", borderBottom:`1px solid ${B.lightGrey}`,
     color:B.lightTeal, fontSize:12, verticalAlign:"middle" },
-  statGrid:{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:16 },
+  statGrid:{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:16 },
   stat:{ background:"#fff", border:`1px solid ${B.lightSeafoam}`,
     borderTop:`3px solid ${B.midGreen}`, borderRadius:8, padding:"13px 16px" },
   statVal:{ fontSize:23, fontWeight:700, color:B.darkTeal, lineHeight:1 },
@@ -497,6 +497,7 @@ function ProductTable({ prods, showCountry=true }) {
               {showCountry && <th style={S.th}>Country</th>}
               <th style={S.th}>City</th>
               <th style={S.th}>System</th>
+              <th style={S.th}>Mode</th>
               <th style={S.th}>Fare System</th>
               <th style={S.th}>Category</th>
               <th style={S.th}>Ticket Type</th>
@@ -830,8 +831,6 @@ export default function FaresPlatform() {
                   selected={filters.unified_passenger_type} onChange={v=>setF("unified_passenger_type",v)}/>
                 <MultiSelect label="Ticket category" options={ticketCategories}
                   selected={filters.ticket_category} onChange={v=>setF("ticket_category",v)}/>
-                <MultiSelect label="Mode" options={modeOptions}
-                  selected={filters.mode} onChange={v=>setF("mode",v)}/>
                 <MultiSelect label="Peak / Off-peak" options={peakOptions}
                   selected={filters.peak_period} onChange={v=>setF("peak_period",v)}/>
                 <MultiSelect label="Payment media" options={paymentMediaOptions}
@@ -882,7 +881,6 @@ export default function FaresPlatform() {
                     [products.length.toLocaleString(),"Fare products"],
                     [uniqueCities.length,"Cities"],
                     [uniqueSystems.length,"Transit systems"],
-                    [avgFare!=null?(avgFare<100?avgFare.toFixed(2):Math.round(avgFare).toLocaleString()):"—","Avg latest fare"],
                   ].map(([v,l])=>(
                     <div key={l} style={S.stat}><div style={S.statVal}>{v}</div><div style={S.statLabel}>{l}</div></div>
                   ))}
