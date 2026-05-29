@@ -624,28 +624,83 @@ function ProductTable({ prods, showCountry=true }) {
 
 // ── Affordability table (top-level to avoid remount on parent re-render) ──────
 function AffordabilityTable({ prods }) {
+  const [sortCol, setSortCol] = React.useState("country_city");
+  const [sortDir, setSortDir] = React.useState("asc");
+
   const year = YEARS.slice().reverse().find(y => prods.some(p => p.observations[y])) || CURRENT_YEAR;
   const allPPP = prods.map(p=>p.observations[year]?.ppp).filter(Boolean);
   const allMin = prods.map(p=>p.observations[year]?.min_wage_mins).filter(Boolean);
   const allAvg = prods.map(p=>p.observations[year]?.avg_wage_mins).filter(Boolean);
+
+  const handleSort = (col) => {
+    if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortCol(col); setSortDir("asc"); }
+  };
+
+  const getVal = (p, col) => {
+    const obs = p.observations[year] || {};
+    const inf = sortDir === "asc" ? Infinity : -Infinity;
+    if (col === "country_city")           return `${p.country||""}|${p.city||""}`;
+    if (col === "city")                   return p.city||"";
+    if (col === "transit_system")         return p.transit_system||"";
+    if (col === "ticket_category")        return p.ticket_category||"";
+    if (col === "unified_ticket_type")    return p.unified_ticket_type||"";
+    if (col === "unified_passenger_type") return p.unified_passenger_type||"";
+    if (col === "zone")                   return p.zone||"";
+    if (col === "fare")                   return obs.fare ?? inf;
+    if (col === "ppp")                    return obs.ppp ?? inf;
+    if (col === "min_wage_mins")          return obs.min_wage_mins ?? inf;
+    if (col === "avg_wage_mins")          return obs.avg_wage_mins ?? inf;
+    return "";
+  };
+
+  const sorted = [...prods].sort((a, b) => {
+    const av = getVal(a, sortCol), bv = getVal(b, sortCol);
+    let cmp = typeof av === "number" && typeof bv === "number"
+      ? av - bv : String(av).localeCompare(String(bv));
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  const thSort = (col, label, numeric=false) => {
+    const active = sortCol === col;
+    const arrow = active ? (sortDir === "asc" ? " ▲" : " ▼") : "";
+    return (
+      <th key={col} style={{...S.th, textAlign:numeric?"right":"left",
+        cursor:"pointer", userSelect:"none", whiteSpace:"nowrap",
+        background:active?"#e8f0e8":"#f0f4f2",
+        color:active?B.darkGreen:B.lightTeal}}
+        onClick={()=>handleSort(col)}>
+        {label}{arrow}
+      </th>
+    );
+  };
+
   return (
     <div style={{ ...S.card, padding:0, overflow:"hidden" }}>
       <div style={{padding:"12px 16px 10px",borderBottom:`1px solid ${B.lightSeafoam}`,fontSize:12,color:"#7A9899"}}>
         Showing most recent year with data. Min/Avg wage = minutes of work to afford fare.
-        Colour: <span style={{color:"#059669",fontWeight:600}}>green</span> = affordable,
-        <span style={{color:"#d97706",fontWeight:600}}> amber</span> = moderate,
-        <span style={{color:"#dc2626",fontWeight:600}}> red</span> = expensive relative to peers.
+        Colour: <span style={{color:"#2d7a4f",fontWeight:600}}>green</span> = affordable,
+        <span style={{color:"#b45309",fontWeight:600}}> amber</span> = moderate,
+        <span style={{color:"#b91c1c",fontWeight:600}}> red</span> = expensive relative to peers.
+        <span style={{color:"#AEC2C3",marginLeft:8}}>· Click any column header to sort</span>
       </div>
       <div style={{overflowX:"auto"}}>
         <table style={S.table}>
           <thead><tr>
-            {["Country","City","System","Category","Ticket Type","Passenger","Zone",
-              `Fare (${YEAR_LABELS[year]})`,`USD PPP`,`Min wage (mins)`,`Avg wage (mins)`].map(h=>(
-              <th key={h} style={S.th}>{h}</th>
-            ))}
+            {thSort("country_city","Country")}
+            {thSort("city","City")}
+            {thSort("transit_system","System")}
+            {thSort("ticket_category","Category")}
+            {thSort("unified_ticket_type","Ticket Type")}
+            {thSort("unified_passenger_type","Passenger")}
+            {thSort("zone","Zone")}
+            {thSort("fare",`Fare (${YEAR_LABELS[year]})`,true)}
+            {thSort("ppp","USD PPP",true)}
+            {thSort("min_wage_mins","Min wage (mins)",true)}
+            {thSort("avg_wage_mins","Avg wage (mins)",true)}
           </tr></thead>
           <tbody>
-            {prods.map(p => {
+            {sorted.map(p => {
               const obs = p.observations[year] || {};
               return (
                 <tr key={p.product_id}
@@ -1073,32 +1128,70 @@ export default function FaresPlatform() {
                     return v.toFixed(1);
                   };
                   const activeYears = YEARS.filter(y => compareProducts.some(p => p.observations[y]?.[metricKey] != null));
-                  // Colour code values within each year column
                   const yearVals = {};
                   activeYears.forEach(y => {
                     yearVals[y] = compareProducts.map(p=>p.observations[y]?.[metricKey]).filter(v=>v!=null);
                   });
+
+                  const [cSortCol, setCSortCol] = React.useState("city");
+                  const [cSortDir, setCSortDir] = React.useState("asc");
+                  const handleCSort = (col) => {
+                    if (cSortCol===col) setCSortDir(d=>d==="asc"?"desc":"asc");
+                    else { setCSortCol(col); setCSortDir("asc"); }
+                  };
+                  const getCVal = (p, col) => {
+                    const inf = cSortDir==="asc"?Infinity:-Infinity;
+                    if (col==="city")                   return p.city||"";
+                    if (col==="transit_system")         return p.transit_system||"";
+                    if (col==="mode")                   return p.mode||"";
+                    if (col==="ticket_category")        return p.ticket_category||"";
+                    if (col==="unified_ticket_type")    return p.unified_ticket_type||"";
+                    if (col==="unified_passenger_type") return p.unified_passenger_type||"";
+                    if (col==="zone")                   return p.zone||"";
+                    if (activeYears.includes(col))      return p.observations[col]?.[metricKey] ?? inf;
+                    return "";
+                  };
+                  const cSorted = [...compareProducts].sort((a,b)=>{
+                    const av=getCVal(a,cSortCol), bv=getCVal(b,cSortCol);
+                    let cmp = typeof av==="number"&&typeof bv==="number" ? av-bv : String(av).localeCompare(String(bv));
+                    return cSortDir==="asc"?cmp:-cmp;
+                  });
+                  const cTh = (col, label, numeric=false) => {
+                    const active = cSortCol===col;
+                    const arrow = active?(cSortDir==="asc"?" ▲":" ▼"):"";
+                    return (
+                      <th key={col} style={{...S.th, textAlign:numeric?"right":"left",
+                        cursor:"pointer", userSelect:"none", whiteSpace:"nowrap",
+                        background:active?"#e8f0e8":"#f0f4f2",
+                        color:active?B.darkGreen:B.lightTeal}}
+                        onClick={()=>handleCSort(col)}>
+                        {label}{arrow}
+                      </th>
+                    );
+                  };
+
                   return (
                     <div style={{...S.card, padding:0, overflow:"hidden"}}>
                       <div style={{padding:"12px 16px",borderBottom:`1px solid ${B.lightSeafoam}`,fontSize:12,color:"#7A9899"}}>
                         Showing <strong>{({fare:"local fare",ppp:"USD (PPP)",min_wage:"minimum wage minutes",avg_wage:"average wage minutes"})[trendMetric]}</strong> by year.
                         {trendMetric!=="fare" && " Colour: green = most affordable, red = least affordable within each year."}
+                        <span style={{color:"#AEC2C3",marginLeft:8}}>· Click any column header to sort</span>
                       </div>
                       <div style={{overflowX:"auto"}}>
                         <table style={S.table}>
                           <thead><tr>
-                            <th style={S.th}>City</th>
-                            <th style={S.th}>System</th>
-                            <th style={S.th}>Mode</th>
-                            <th style={S.th}>Category</th>
-                            <th style={S.th}>Ticket type</th>
-                            <th style={S.th}>Passenger</th>
-                            <th style={S.th}>Zone</th>
-                            {activeYears.map(y=><th key={y} style={{...S.th,textAlign:"right"}}>{YEAR_LABELS[y]}</th>)}
+                            {cTh("city","City")}
+                            {cTh("transit_system","System")}
+                            {cTh("mode","Mode")}
+                            {cTh("ticket_category","Category")}
+                            {cTh("unified_ticket_type","Ticket type")}
+                            {cTh("unified_passenger_type","Passenger")}
+                            {cTh("zone","Zone")}
+                            {activeYears.map(y=>cTh(y,YEAR_LABELS[y],true))}
                             <th style={S.th}>Trend</th>
                           </tr></thead>
                           <tbody>
-                            {compareProducts.map(p => {
+                            {cSorted.map(p => {
                               const sparkPoints = {};
                               activeYears.forEach(y => {
                                 const v = p.observations[y]?.[metricKey];
@@ -1121,9 +1214,9 @@ export default function FaresPlatform() {
                                   <td style={S.tdMuted}>{p.zone||"—"}</td>
                                   {activeYears.map(y => {
                                     const v = p.observations[y]?.[metricKey];
-                                    const colour = trendMetric!=="fare" ? S.econColour(v, yearVals[y]) : "#374151";
+                                    const colour = trendMetric!=="fare" ? S.econColour(v, yearVals[y]) : B.nearBlack;
                                     return (
-                                      <td key={y} style={{...S.tdNum, color:colour, fontWeight: v!=null&&trendMetric!=="fare"?600:400}}>
+                                      <td key={y} style={{...S.tdNum, color:colour, fontWeight:v!=null&&trendMetric!=="fare"?600:400}}>
                                         {v!=null ? metricFmt(v) : <span style={{color:"#D4DFDF"}}>—</span>}
                                       </td>
                                     );
