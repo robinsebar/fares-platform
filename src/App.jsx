@@ -476,6 +476,9 @@ function groupByProduct(rows) {
 
 // ── Product table (top-level to avoid remount on parent re-render) ───────────
 function ProductTable({ prods, showCountry=true }) {
+  const [sortCol, setSortCol] = React.useState("country_city");
+  const [sortDir, setSortDir] = React.useState("asc");
+
   const activeYears = YEARS.filter(y => prods.some(p => p.observations[y]));
   const uniqueCountries = [...new Set(prods.map(p=>p.country))].filter(Boolean);
   const currencies = [...new Set(uniqueCountries.map(c => COUNTRY_CURRENCIES[c]?.code).filter(Boolean))];
@@ -484,33 +487,81 @@ function ProductTable({ prods, showCountry=true }) {
     : currencies.length > 1
       ? `Fares shown in local currencies (${currencies.join(", ")}). Use USD (PPP) metric for cross-country comparison.`
       : "Fares shown in local currency. Use USD (PPP) metric for cross-country comparison.";
+
+  const handleSort = (col) => {
+    if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortCol(col); setSortDir("asc"); }
+  };
+
+  const getVal = (p, col) => {
+    if (col === "country_city") return `${p.country||""}|${p.city||""}`;
+    if (col === "city")         return p.city||"";
+    if (col === "transit_system") return p.transit_system||"";
+    if (col === "mode")         return p.mode||"";
+    if (col === "fare_system")  return p.fare_system||"";
+    if (col === "ticket_category") return p.ticket_category||"";
+    if (col === "unified_ticket_type") return p.unified_ticket_type||"";
+    if (col === "unified_passenger_type") return p.unified_passenger_type||"";
+    if (col === "zone")         return p.zone||"";
+    if (col === "peak_period")  return p.peak_period||"";
+    if (col === "payment_media") return p.payment_media||"";
+    // Year columns — sort by fare value, nulls last
+    if (YEARS.includes(col)) return p.observations[col]?.fare ?? (sortDir === "asc" ? Infinity : -Infinity);
+    return "";
+  };
+
+  const sorted = [...prods].sort((a, b) => {
+    const av = getVal(a, sortCol);
+    const bv = getVal(b, sortCol);
+    let cmp = 0;
+    if (typeof av === "number" && typeof bv === "number") cmp = av - bv;
+    else cmp = String(av).localeCompare(String(bv));
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  const thSort = (col, label, numeric=false) => {
+    const active = sortCol === col;
+    const arrow = active ? (sortDir === "asc" ? " ▲" : " ▼") : "";
+    return (
+      <th key={col}
+        style={{...S.th, textAlign: numeric?"right":"left", cursor:"pointer",
+          userSelect:"none", whiteSpace:"nowrap",
+          background: active ? "#e8f0e8" : "#f0f4f2",
+          color: active ? B.darkGreen : B.lightTeal}}
+        onClick={() => handleSort(col)}>
+        {label}{arrow}
+      </th>
+    );
+  };
+
   return (
     <div style={{ ...S.card, padding:0, overflow:"hidden" }}>
       <div style={{padding:"8px 14px",background:"#f4f7f4",borderBottom:"1px solid #e2e8f0",
         fontSize:12,color:"#64748b",display:"flex",alignItems:"center",gap:6}}>
         <span style={{color:"#7A9899"}}>ⓘ</span> {currencyNote}
+        <span style={{color:"#AEC2C3",marginLeft:8}}>· Click any column header to sort</span>
       </div>
       <div style={{ overflowX:"auto" }}>
         <table style={S.table}>
           <thead>
             <tr>
-              {showCountry && <th style={S.th}>Country</th>}
-              <th style={S.th}>City</th>
-              <th style={S.th}>System</th>
-              <th style={S.th}>Mode</th>
-              <th style={S.th}>Fare System</th>
-              <th style={S.th}>Category</th>
-              <th style={S.th}>Ticket Type</th>
-              <th style={S.th}>Passenger</th>
-              <th style={S.th}>Zone</th>
-              <th style={S.th}>Peak</th>
-              <th style={S.th}>Payment media</th>
-              {activeYears.map(y => <th key={y} style={{...S.th,textAlign:"right"}}>{YEAR_LABELS[y]}</th>)}
+              {showCountry && thSort("country_city","Country")}
+              {thSort("city","City")}
+              {thSort("transit_system","System")}
+              {thSort("mode","Mode")}
+              {thSort("fare_system","Fare System")}
+              {thSort("ticket_category","Category")}
+              {thSort("unified_ticket_type","Ticket Type")}
+              {thSort("unified_passenger_type","Passenger")}
+              {thSort("zone","Zone")}
+              {thSort("peak_period","Peak")}
+              {thSort("payment_media","Payment media")}
+              {activeYears.map(y => thSort(y, YEAR_LABELS[y], true))}
               <th style={S.th}>Trend</th>
             </tr>
           </thead>
           <tbody>
-            {prods.map(p => {
+            {sorted.map(p => {
               const farePoints = {};
               YEARS.forEach(y => { if(p.observations[y]?.fare != null) farePoints[y] = p.observations[y].fare; });
               return (
